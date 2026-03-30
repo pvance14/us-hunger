@@ -1,0 +1,45 @@
+# Architecture & Tech Stack: Intelligent Volunteer Coordination Agent
+
+## 1. Architectural Philosophy
+The architecture for the MVP is designed with three strict principles derived from the product requirements:
+1. **Low Cost & High Independence:** The system avoids expensive monthly SaaS subscriptions (like per-seat internal tool licenses or premium Zapier tiers) that financially burden Community Based Organizations (CBOs). We prioritize an open-source, easily hand-offable stack.
+2. **Desktop-Optimized "Glanceability":** The Control Tower dashboard must run fast and reliably on standard CBO desktop computers without hogging browser memory.
+3. **Frictionless End-User Experience:** Volunteers interact purely via SMS and highly optimized mobile web links—no app downloads are required.
+
+## 2. The Core Tech Stack
+
+### Frontend & "Control Tower" Dashboard
+*   **Framework:** Next.js (React)
+*   **Styling:** Tailwind CSS
+*   **Why:** Next.js allows us to build a lightning-fast web application that can be hosted entirely for free (e.g., on Vercel or Netlify's generous free tiers). Tailwind CSS ensures we can rapidly build the high-contrast, accessible UI required by the PRD. This custom code approach means the CBO owns the asset outright without paying monthly dashboard provider fees.
+
+### Database, Auth & Secure Storage (Backend)
+*   **Platform:** Supabase (Open-Source Firebase Alternative based on PostgreSQL)
+*   **Why:** Supabase provides everything we need in a single, open-source-friendly package with an unparalleled free tier. 
+    *   **PostgreSQL / Real-Time:** Powers the "Live Pulse" and "Red Alert" dashboard widgets natively. When a text comes in, the dashboard updates instantly.
+    *   **Secure Storage:** Safely houses sensitive PII (driver's licenses and insurance cards) in private buckets. This satisfies the "smart security" requirement, keeping data locked down via Row Level Security (RLS) without over-engineering formal compliance before it's legally mandated.
+    *   **Authentication:** Handles volunteer portals and internal staff login securely.
+
+### Communication API (SMS)
+*   **Provider:** Twilio
+*   **Why:** While a dedicated SMS provider is mandatory, Twilio is perfectly suited for low-budget CBOs. It provides a generous free trial credit ($15) that will easily cover the entire MVP proof-of-concept phase at zero cost.
+*   **Cost Minimization Strategy:** To keep costs extremely low (expected under $5-$10/month post-trial), we will strictly use a standard local 10-digit phone number (A2P 10DLC) which costs ~$1-2/month, avoiding expensive dedicated 5-digit "Short Codes" (which cost $1,000+/mo in the industry). Individual SMS messages cost less than a penny ($0.0079) each. We will easily integrate this into our Next.js backend via webhooks to handle the `YES`, `NO`, `SUB`, `HELP` commands without overhead.
+
+### Automation Engine (The "T-Minus" Protocol)
+*   **Tooling:** Inngest or Vercel Serverless Cron Jobs
+*   **Why:** Instead of paying for Zapier or Make.com to orchestrate the 15-minute staggered substitute pings or the T-72 hour reminders, we can handle the cron-style automation natively alongside the web app. This keeps the logic centralized in one codebase and keeps operational costs near zero.
+
+## 3. Data Flow (Standalone MVP)
+
+Since Phase 1 is a standalone proof-of-concept (not requiring complex bi-directional syncing with legacy systems like Stockbox immediately), the data flow is straightforward and closed-loop. To support this standalone nature, the system will include a built-in CSV Import/Export utility.
+
+1.  **Data Seeding (CSV Bulk Upload):** Coordinators can use a Bulk Import/Export Tool built into the Next.js dashboard to upload existing volunteer rosters and schedule data via CSV, instantly populating the Supabase database without manual entry. Data can also be cleanly exported to CSV at any time for external reporting.
+2.  **Continuous Onboarding:** A new volunteer signs up via our lightweight Next.js Onboarding Portal. Their data and documents are securely saved to Supabase.
+3.  **Trigger:** A cancellation occurs (either via the Coordinator dashboard or a Twilio inbound webhook when a volunteer texts `NO`).
+4.  **Autonomous Sub-Filling:** Our custom engine executes the sub-finding logic -> Queries Supabase for available, compliant subs -> Triggers Twilio to send SMS batches -> Listens for a `YES` -> Updates the Supabase shift record -> Real-time UI payload pushes the update to the Coordinator's Desktop Dashboard.
+
+## 4. Security Posture
+While formal compliance is deferred to Phase 2, the baseline architecture prevents data leaks:
+*   **Row Level Security (RLS):** Policies applied directly at the database level ensure a volunteer can only access their own documents, and only authenticated staff can view the global schedules or rosters.
+*   **Private Buckets:** Uploaded compliance images are not accessible via public URLs; they require signed, expiring URLs generated by the backend.
+*   **No PII in SMS:** We avoid texting sensitive information, using SMS purely as a notification mechanism with links back to the secure portal if sensitive data review is required.
