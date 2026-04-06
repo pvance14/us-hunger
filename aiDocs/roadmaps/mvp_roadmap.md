@@ -7,9 +7,9 @@
   - Define schema (`Volunteers`, `Shifts`, `Schedules`, `Sub_Requests`).
   - Configure Row Level Security (RLS) to ensure data privacy.
   - Set up private storage buckets for compliance documents (driver's licenses, insurance).
-- **Communication Infrastructure (Twilio)**:
-  - Provision a local 10-digit phone number (A2P 10DLC).
-  - Configure Twilio webhooks to route incoming SMS to the Next.js backend.
+- **Communication Infrastructure (SMS Simulator)**:
+  - Build an in-app "Volunteer Phone View" chat interface to simulate SMS interaction.
+  - Configure Next.js backend webhooks to process simulated replies, bypassing Twilio registration overhead.
 - **Automation Setup**: Configure Inngest or Vercel Serverless Cron Jobs for scheduled tasks.
 
 ## Phase 2: Core Engine & Prototype Setup (Target: March 30)

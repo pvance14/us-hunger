@@ -20,10 +20,10 @@ The architecture for the MVP is designed with three strict principles derived fr
     *   **Secure Storage:** Safely houses sensitive PII (driver's licenses and insurance cards) in private buckets. This satisfies the "smart security" requirement, keeping data locked down via Row Level Security (RLS) without over-engineering formal compliance before it's legally mandated.
     *   **Authentication:** Handles volunteer portals and internal staff login securely.
 
-### Communication API (SMS)
-*   **Provider:** Twilio
-*   **Why:** While a dedicated SMS provider is mandatory, Twilio is perfectly suited for low-budget CBOs. It provides a generous free trial credit ($15) that will easily cover the entire MVP proof-of-concept phase at zero cost.
-*   **Cost Minimization Strategy:** To keep costs extremely low (expected under $5-$10/month post-trial), we will strictly use a standard local 10-digit phone number (A2P 10DLC) which costs ~$1-2/month, avoiding expensive dedicated 5-digit "Short Codes" (which cost $1,000+/mo in the industry). Individual SMS messages cost less than a penny ($0.0079) each. We will easily integrate this into our Next.js backend via webhooks to handle the `YES`, `NO`, `SUB`, `HELP` commands without overhead.
+### Communication API (Simulated SMS MVP)
+*   **Provider:** In-App Chat Box Simulator (Replacing Twilio for MVP)
+*   **Why:** Rather than relying on a paid SMS gateway like Twilio and navigating the lengthy A2P 10DLC registration process during the prototyping phase, the MVP will mimic Twilio's functionality via an in-app messaging terminal. This removes friction for stakeholder presentations, allowing immediate demonstration of the two-way logic (`YES`, `NO`, `SUB`, `HELP`) without external API latency or costs.
+*   **Infrastructure Impact:** Outbound events from our automation engine will push data to the chat UI, while inbound responses typed into the simulator will hit a Next.js payload handler exactly as a Twilio webhook would. This keeps the core logic identical to a real telecom setup for easy swapping later.
 
 ### Automation Engine (The "T-Minus" Protocol)
 *   **Tooling:** Inngest or Vercel Serverless Cron Jobs
