@@ -59,8 +59,7 @@ export const findSubstitutes = inngest.createFunction(
 );
 
 export const automatedReminders = inngest.createFunction(
-  { id: 'automated-reminders' },
-  { cron: '0 * * * *' }, // Run every hour
+  { id: 'automated-reminders', cron: '0 * * * *' }, // Run every hour
   async ({ step }) => {
     await step.run('process-reminders', async () => {
       console.log('[INNGEST] Running automated reminders task...');
@@ -78,11 +77,52 @@ export const automatedReminders = inngest.createFunction(
         const hoursUntilShift = (new Date(sched.scheduled_date).getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntilShift > 71 && hoursUntilShift <= 72) {
-          console.log(`[MOCK SMS] T-72 Reminder to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Are you still able to make the ${sched.shifts?.name} shift? Reply YES to confirm, or SUB to find a replacement.`);
+           console.log(`[MOCK SMS] T-72 Reminder to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Are you still able to make the ${sched.shifts?.name} shift? Reply YES to confirm, or SUB to find a replacement.`);
         } else if (hoursUntilShift > 23 && hoursUntilShift <= 24) {
-          console.log(`[MOCK SMS] T-24 Logistics to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Tomorrow is your ${sched.shifts?.name} shift. Please remember to bring the blue bags. Map link: map.url`);
+           console.log(`[MOCK SMS] T-24 Logistics to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Tomorrow is your ${sched.shifts?.name} shift. Remember: Please bring the blue bags. Park in the North lot. Instructions: ${sched.shifts?.instructions || 'None'}`);
         } else if (hoursUntilShift > 1 && hoursUntilShift <= 2) {
-          console.log(`[MOCK SMS] T-2 Nudge to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Your shift ${sched.shifts?.name} starts in 2 hours! Thank you for your service.`);
+           console.log(`[MOCK SMS] T-2 Nudge to ${sched.volunteers?.first_name} (${sched.volunteers?.phone_number}): Your shift ${sched.shifts?.name} starts in 2 hours! Thank you for your service and drive safely.`);
+        }
+      }
+    });
+
+    return { success: true };
+  }
+);
+
+export const complianceAgent = inngest.createFunction(
+  { id: 'compliance-agent', cron: '0 8 * * *' }, // Run every day at 8 AM
+  async ({ step }) => {
+    await step.run('check-compliance', async () => {
+
+      console.log('[INNGEST] Running compliance agent...');
+      
+      const { data: volunteers, error } = await supabase
+        .from('volunteers')
+        .select('id, first_name, last_name, phone_number, insurance_expiry')
+        .eq('status', 'active');
+        
+      if (error || !volunteers) {
+        console.error('Failed to fetch volunteers for compliance', error);
+        return;
+      }
+
+      const now = new Date();
+      
+      for (const vol of volunteers) {
+        if (!vol.insurance_expiry) continue;
+        
+        const expiryDate = new Date(vol.insurance_expiry);
+        const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry === 30) {
+          console.log(`[MOCK SMS] COMPLIANCE: Hi ${vol.first_name}, your vehicle insurance on file expires in 30 days! Please upload a new copy on your dashboard to stay active.`);
+        } else if (daysUntilExpiry === 7) {
+          console.log(`[MOCK SMS] COMPLIANCE: URGENT ${vol.first_name}, your vehicle insurance expires in 7 days. Action is required.`);
+        } else if (daysUntilExpiry <= 0) {
+           console.log(`[MOCK SMS] COMPLIANCE: ${vol.first_name}, your insurance has expired. You have been placed on inactive status.`);
+           // For MVP, we mock the deactivation
+           // await supabase.from('volunteers').update({ status: 'inactive' }).eq('id', vol.id);
         }
       }
     });
