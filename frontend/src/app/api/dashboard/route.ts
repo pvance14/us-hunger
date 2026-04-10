@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getApiErrorMessage } from '@/lib/server/api-errors';
 import { buildDashboardSnapshot } from '@/lib/server/mvp';
 
 export const runtime = 'nodejs';
@@ -10,6 +11,6 @@ export async function GET() {
     return NextResponse.json(snapshot);
   } catch (error) {
     console.error('[DASHBOARD API] Failed to build dashboard snapshot', error);
-    return NextResponse.json({ error: 'Failed to load dashboard data' }, { status: 500 });
+    return NextResponse.json({ error: getApiErrorMessage(error, 'Failed to load dashboard data') }, { status: 500 });
   }
 }

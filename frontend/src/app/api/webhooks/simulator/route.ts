@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
+import { getApiErrorMessage } from '@/lib/server/api-errors';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 import {
   findVolunteerByPhone,
@@ -147,6 +148,55 @@ async function resolveSubstituteAcceptance(
   };
 }
 
+async function resolveSubstituteDecline(
+  volunteer: VolunteerRecord,
+  attempt: SubRequestAttemptRecord,
+): Promise<{ scheduleId: string | null; shiftName: string }> {
+  const subRequest = await getSubRequestById(attempt.sub_request_id);
+
+  if (!subRequest || !subRequest.schedule_id) {
+    throw new Error('Substitute attempt is missing its request context.');
+  }
+
+  const schedule = await getScheduleById(subRequest.schedule_id);
+
+  await supabaseAdmin
+    .from('sub_request_attempts')
+    .update({
+      status: 'declined',
+      responded_at: new Date().toISOString(),
+    })
+    .eq('id', attempt.id)
+    .eq('status', 'sent');
+
+  await recordMessageEvent({
+    phoneNumber: volunteer.phone_number,
+    volunteerId: volunteer.id,
+    scheduleId: schedule?.id ?? null,
+    subRequestId: attempt.sub_request_id,
+    subRequestAttemptId: attempt.id,
+    direction: 'outbound',
+    body: `Thanks for letting us know. We’ll move on to the next substitute candidate.`,
+    messageType: 'sub_decline',
+  });
+
+  await recordMessageEvent({
+    phoneNumber: volunteer.phone_number,
+    volunteerId: volunteer.id,
+    scheduleId: schedule?.id ?? null,
+    subRequestId: attempt.sub_request_id,
+    subRequestAttemptId: attempt.id,
+    direction: 'system',
+    body: `${volunteer.first_name} ${volunteer.last_name} declined ${schedule?.shift?.name ?? 'the open shift'}.`,
+    messageType: 'status',
+  });
+
+  return {
+    scheduleId: schedule?.id ?? null,
+    shiftName: schedule?.shift?.name ?? 'the open shift',
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -214,6 +264,18 @@ export async function POST(request: Request) {
       }
       case 'NO':
       case 'SUB': {
+        if (pendingAttempt && normalizedText === 'NO') {
+          const decline = await resolveSubstituteDecline(volunteer, pendingAttempt);
+
+          return NextResponse.json({
+            success: true,
+            parsed: normalizedText,
+            action: 'declined_substitute_offer',
+            scheduleId: decline.scheduleId,
+            shiftName: decline.shiftName,
+          });
+        }
+
         if (!schedule || !schedule.shift_id) {
           await recordMessageEvent({
             phoneNumber: volunteer.phone_number,
@@ -370,6 +432,9 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error(`[SMS SIMULATOR] Error processing webhook:`, error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: getApiErrorMessage(error, 'The simulator could not process that message.') },
+      { status: 500 },
+    );
   }
 }

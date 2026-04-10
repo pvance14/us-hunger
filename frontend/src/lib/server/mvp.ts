@@ -47,6 +47,10 @@ export function normalizePhoneNumber(value: string): string {
   return value.trim();
 }
 
+export function getPhoneStorageFolderName(value: string): string {
+  return normalizePhoneNumber(value).replace(/\D/g, '');
+}
+
 export function formatVolunteerName(volunteer: Pick<VolunteerRecord, 'first_name' | 'last_name'> | null): string | null {
   if (!volunteer) {
     return null;
@@ -67,7 +71,87 @@ export async function findVolunteerByPhone(phoneNumber: string): Promise<Volunte
     throw error;
   }
 
-  return data;
+  if (data) {
+    return data;
+  }
+
+  if (normalizedPhoneNumber === phoneNumber.trim()) {
+    return null;
+  }
+
+  const { data: fallbackVolunteer, error: fallbackError } = await supabaseAdmin
+    .from('volunteers')
+    .select('*')
+    .eq('phone_number', phoneNumber.trim())
+    .maybeSingle<VolunteerRecord>();
+
+  if (fallbackError) {
+    throw fallbackError;
+  }
+
+  if (!fallbackVolunteer) {
+    return null;
+  }
+
+  await supabaseAdmin.from('volunteers').update({ phone_number: normalizedPhoneNumber }).eq('id', fallbackVolunteer.id);
+
+  return {
+    ...fallbackVolunteer,
+    phone_number: normalizedPhoneNumber,
+  };
+}
+
+export async function getEligibleSubstituteCandidates(input: {
+  subRequestId: string;
+  requestingVolunteerId: string;
+}): Promise<VolunteerRecord[]> {
+  const [attemptsResult, volunteersResult] = await Promise.all([
+    supabaseAdmin
+      .from('sub_request_attempts')
+      .select('candidate_volunteer_id')
+      .eq('sub_request_id', input.subRequestId),
+    supabaseAdmin
+      .from('volunteers')
+      .select('*')
+      .eq('status', 'active')
+      .eq('is_substitute', true)
+      .gte('insurance_expiry', new Date().toISOString().slice(0, 10))
+      .neq('id', input.requestingVolunteerId)
+      .order('substitute_rank', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (attemptsResult.error) {
+    throw attemptsResult.error;
+  }
+
+  if (volunteersResult.error) {
+    throw volunteersResult.error;
+  }
+
+  const attemptedVolunteerIds = new Set(
+    ((attemptsResult.data as { candidate_volunteer_id: string }[] | null) ?? []).map(
+      (attempt) => attempt.candidate_volunteer_id,
+    ),
+  );
+
+  return ((volunteersResult.data as VolunteerRecord[] | null) ?? [])
+    .filter((volunteer) => !attemptedVolunteerIds.has(volunteer.id))
+    .slice(0, 5);
+}
+
+async function getScheduleWithContext(scheduleId: string): Promise<ScheduleWithShift | null> {
+  const { data, error } = await supabaseAdmin
+    .from('schedules')
+    .select('*, shift:shifts(*), volunteer:volunteers(*)')
+    .eq('id', scheduleId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as ScheduleWithShift | null) ?? null;
 }
 
 export async function listSimulatorVolunteers(): Promise<SimulatorVolunteerOption[]> {
@@ -213,6 +297,97 @@ export async function getPendingAttemptForVolunteer(volunteerId: string): Promis
   return data;
 }
 
+export async function takeCoordinatorOwnership(input: {
+  entityId: string;
+  entityType: 'schedule' | 'sub_request';
+}): Promise<void> {
+  if (input.entityType === 'schedule') {
+    const schedule = await getScheduleWithContext(input.entityId);
+
+    if (!schedule) {
+      throw new Error('Schedule not found.');
+    }
+
+    await supabaseAdmin
+      .from('schedules')
+      .update({
+        coordinator_taken_over: true,
+        status: schedule.status === 'danger_zone' ? 'danger_zone' : 'needs_review',
+      })
+      .eq('id', schedule.id);
+
+    const relatedSubRequest = await getOpenSubRequestForSchedule(schedule.id);
+
+    if (relatedSubRequest) {
+      await supabaseAdmin
+        .from('sub_requests')
+        .update({
+          coordinator_taken_over: true,
+          status: 'escalated',
+        })
+        .eq('id', relatedSubRequest.id);
+    }
+
+    await recordMessageEvent({
+      phoneNumber: schedule.volunteer?.phone_number ?? '+10000000000',
+      volunteerId: schedule.volunteer?.id ?? null,
+      scheduleId: schedule.id,
+      subRequestId: relatedSubRequest?.id ?? null,
+      direction: 'system',
+      body: `A coordinator took over ${schedule.shift?.name ?? 'this shift'} from the dashboard.`,
+      messageType: 'takeover',
+      requiresReview: true,
+    });
+
+    return;
+  }
+
+  const { data: subRequestData, error: subRequestError } = await supabaseAdmin
+    .from('sub_requests')
+    .select('*, schedule:schedules(*, shift:shifts(*), volunteer:volunteers(*))')
+    .eq('id', input.entityId)
+    .maybeSingle();
+
+  if (subRequestError) {
+    throw subRequestError;
+  }
+
+  const subRequest = (subRequestData as (SubRequestRecord & { schedule: ScheduleWithShift | null }) | null) ?? null;
+
+  if (!subRequest) {
+    throw new Error('Substitute request not found.');
+  }
+
+  await supabaseAdmin
+    .from('sub_requests')
+    .update({
+      coordinator_taken_over: true,
+      status: 'escalated',
+    })
+    .eq('id', subRequest.id);
+
+  if (subRequest.schedule_id) {
+    await supabaseAdmin
+      .from('schedules')
+      .update({
+        coordinator_taken_over: true,
+        status: subRequest.schedule?.status === 'danger_zone' ? 'danger_zone' : 'needs_review',
+      })
+      .eq('id', subRequest.schedule_id);
+  }
+
+  await recordMessageEvent({
+    phoneNumber: subRequest.schedule?.volunteer?.phone_number ?? '+10000000000',
+    volunteerId: subRequest.schedule?.volunteer?.id ?? null,
+    scheduleId: subRequest.schedule_id,
+    subRequestId: subRequest.id,
+    direction: 'system',
+    body: `A coordinator took over ${subRequest.schedule?.shift?.name ?? 'this substitute request'} from the dashboard.`,
+    messageType: 'takeover',
+    requiresReview: true,
+  });
+}
+
 export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
   const [schedulesResult, messageEventsResult, searchingSubRequestsResult] = await Promise.all([
     supabaseAdmin
@@ -279,23 +454,29 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
     .filter((schedule) => schedule.status === 'danger_zone' || schedule.status === 'needs_review')
     .map((schedule) => ({
       id: schedule.id,
+      entityId: schedule.id,
+      entityType: 'schedule',
       title: schedule.status === 'danger_zone' ? 'Danger Zone Cancellation' : 'Needs Human Review',
       description:
         schedule.status === 'danger_zone'
           ? `${schedule.shift?.name ?? 'Shift'} starts soon and now needs manual coverage.`
           : `${schedule.shift?.name ?? 'Shift'} has a conversation that needs coordinator review.`,
       createdAt: schedule.starts_at,
+      takenOver: schedule.coordinator_taken_over,
       severity: 'high',
     }));
 
   const alertsFromSubRequests: DashboardAlert[] = flaggedSubRequests.map((subRequest) => ({
     id: subRequest.id,
+    entityId: subRequest.id,
+    entityType: 'sub_request',
     title: subRequest.status === 'failed' ? 'Substitute Search Exhausted' : 'Escalated Request',
     description:
       subRequest.status === 'failed'
         ? `${subRequest.schedule?.shift?.name ?? 'Shift'} ran out of automated substitutes.`
         : `${subRequest.schedule?.shift?.name ?? 'Shift'} has been escalated for manual follow-up.`,
     createdAt: subRequest.created_at,
+    takenOver: subRequest.coordinator_taken_over,
     severity: 'high',
   }));
 
@@ -312,7 +493,13 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
   return {
     funnel,
     alerts: [...alertsFromSchedules, ...alertsFromSubRequests]
-      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .sort((left, right) => {
+        if (left.takenOver !== right.takenOver) {
+          return Number(left.takenOver) - Number(right.takenOver);
+        }
+
+        return right.createdAt.localeCompare(left.createdAt);
+      })
       .slice(0, 8),
     pulses,
   };

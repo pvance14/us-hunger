@@ -1,6 +1,7 @@
 import { inngest } from './client';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 import {
+  getEligibleSubstituteCandidates,
   getSearchingSubRequest,
   recordMessageEvent,
 } from '@/lib/server/mvp';
@@ -127,21 +128,12 @@ export const findSubstitutes = inngest.createFunction(
       return { status: 'danger-zone' };
     }
 
-    const candidates = await step.run('fetch-candidates', async () => {
-      const { data, error } = await supabaseAdmin
-        .from('volunteers')
-        .select('*')
-        .eq('status', 'active')
-        .neq('id', payload.volunteerId)
-        .order('created_at', { ascending: true })
-        .limit(5);
-
-      if (error) {
-        throw error;
-      }
-
-      return (data as VolunteerRecord[]) ?? [];
-    });
+    const candidates = await step.run('fetch-candidates', async () =>
+      getEligibleSubstituteCandidates({
+        subRequestId: payload.subRequestId,
+        requestingVolunteerId: payload.volunteerId,
+      }),
+    );
 
     for (const [index, candidate] of candidates.entries()) {
       const activeSubRequest = await step.run(`check-sub-request-${candidate.id}`, async () =>

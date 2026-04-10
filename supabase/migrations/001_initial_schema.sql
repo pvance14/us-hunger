@@ -9,6 +9,8 @@ CREATE TABLE public.volunteers (
     phone_number TEXT UNIQUE NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending_onboarding'
         CHECK (status IN ('active', 'inactive', 'pending_onboarding')),
+    is_substitute BOOLEAN NOT NULL DEFAULT FALSE,
+    substitute_rank INTEGER,
     driver_license_url TEXT,
     insurance_url TEXT,
     insurance_expiry DATE
@@ -32,6 +34,7 @@ CREATE TABLE public.schedules (
     volunteer_id UUID REFERENCES public.volunteers(id) ON DELETE SET NULL,
     scheduled_date DATE NOT NULL,
     starts_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    coordinator_taken_over BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'scheduled'
         CHECK (status IN (
             'scheduled',
@@ -50,6 +53,7 @@ CREATE TABLE public.sub_requests (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     schedule_id UUID REFERENCES public.schedules(id) ON DELETE CASCADE,
     requesting_volunteer_id UUID REFERENCES public.volunteers(id) ON DELETE CASCADE,
+    coordinator_taken_over BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'searching'
         CHECK (status IN ('searching', 'resolved', 'failed', 'escalated')),
     resolved_by_volunteer_id UUID REFERENCES public.volunteers(id) ON DELETE SET NULL
@@ -85,6 +89,7 @@ CREATE TABLE public.message_events (
     body TEXT NOT NULL
 );
 
+CREATE INDEX volunteers_substitute_idx ON public.volunteers (is_substitute, substitute_rank, insurance_expiry);
 CREATE INDEX schedules_starts_at_idx ON public.schedules (starts_at);
 CREATE INDEX schedules_status_idx ON public.schedules (status);
 CREATE INDEX sub_requests_status_idx ON public.sub_requests (status);
@@ -124,6 +129,19 @@ CREATE POLICY "Authenticated users full access to sub_request_attempts"
 
 CREATE POLICY "Authenticated users full access to message_events"
     ON public.message_events FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Anon users can read schedules for dashboard"
+    ON public.schedules FOR SELECT TO anon USING (true);
+
+CREATE POLICY "Anon users can read sub requests for dashboard"
+    ON public.sub_requests FOR SELECT TO anon USING (true);
+
+CREATE POLICY "Anon users can read message events for dashboard"
+    ON public.message_events FOR SELECT TO anon USING (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.schedules;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sub_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.message_events;
 
 -- Storage Buckets Setup
 INSERT INTO storage.buckets (id, name, public)

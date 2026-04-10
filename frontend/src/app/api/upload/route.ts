@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getPhoneStorageFolderName, normalizePhoneNumber } from '@/lib/server/mvp';
 
 // We use the service role key to bypass RLS for onboarding, as the MVP doesn't have volunteer account auth yet.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co';
@@ -27,10 +28,11 @@ export async function POST(request: Request) {
 
     let driverLicenseUrl = null;
     let insuranceUrl = null;
+    const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
     
     // In a real scenario we might have an authenticated UID.
     // For MVP, we'll use a temporary folder for them based on phone number
-    const folderName = phoneNumber.replace(/[^0-9]/g, '');
+    const folderName = getPhoneStorageFolderName(phoneNumber);
 
     // Upload Driver License if provided
     if (driverLicense && driverLicense.size > 0) {
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
       .insert({
         first_name: firstName,
         last_name: lastName,
-        phone_number: phoneNumber,
+        phone_number: normalizedPhoneNumber,
         status: 'active', // For MVP, immediately activate them instead of pending
         driver_license_url: driverLicenseUrl,
         insurance_url: insuranceUrl,

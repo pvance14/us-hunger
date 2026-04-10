@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getApiErrorMessage } from '@/lib/server/api-errors';
 import { buildSimulatorConversation, listSimulatorVolunteers } from '@/lib/server/mvp';
 
 export const runtime = 'nodejs';
@@ -23,6 +24,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[SIMULATOR API] Failed to load simulator data', error);
-    return NextResponse.json({ error: 'Failed to load simulator data' }, { status: 500 });
+    return NextResponse.json({ error: getApiErrorMessage(error, 'Failed to load simulator data') }, { status: 500 });
   }
 }

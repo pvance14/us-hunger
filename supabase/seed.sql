@@ -6,16 +6,25 @@ TRUNCATE TABLE public.shifts RESTART IDENTITY CASCADE;
 TRUNCATE TABLE public.volunteers RESTART IDENTITY CASCADE;
 
 WITH volunteers_seed AS (
-    INSERT INTO public.volunteers (id, first_name, last_name, phone_number, status, insurance_expiry)
+    INSERT INTO public.volunteers (
+        id,
+        first_name,
+        last_name,
+        phone_number,
+        status,
+        is_substitute,
+        substitute_rank,
+        insurance_expiry
+    )
     VALUES
-        ('00000000-0000-0000-0000-000000000101', 'Maya', 'Driver', '+15551000001', 'active', CURRENT_DATE + 30),
-        ('00000000-0000-0000-0000-000000000102', 'Leo', 'Driver', '+15551000002', 'active', CURRENT_DATE + 7),
-        ('00000000-0000-0000-0000-000000000103', 'Sofia', 'Helper', '+15551000003', 'active', CURRENT_DATE + 90),
-        ('00000000-0000-0000-0000-000000000104', 'Ava', 'Sub', '+15551000004', 'active', CURRENT_DATE + 45),
-        ('00000000-0000-0000-0000-000000000105', 'Noah', 'Sub', '+15551000005', 'active', CURRENT_DATE + 60),
-        ('00000000-0000-0000-0000-000000000106', 'Eli', 'Sub', '+15551000006', 'active', CURRENT_DATE + 15),
-        ('00000000-0000-0000-0000-000000000107', 'Grace', 'Sub', '+15551000007', 'active', CURRENT_DATE - 1),
-        ('00000000-0000-0000-0000-000000000108', 'Tara', 'Pending', '+15551000008', 'pending_onboarding', NULL)
+        ('00000000-0000-0000-0000-000000000101', 'Maya', 'Driver', '+15551000001', 'active', FALSE, NULL, CURRENT_DATE + 30),
+        ('00000000-0000-0000-0000-000000000102', 'Leo', 'Driver', '+15551000002', 'active', FALSE, NULL, CURRENT_DATE + 7),
+        ('00000000-0000-0000-0000-000000000103', 'Sofia', 'Helper', '+15551000003', 'active', FALSE, NULL, CURRENT_DATE + 90),
+        ('00000000-0000-0000-0000-000000000104', 'Ava', 'Sub', '+15551000004', 'active', TRUE, 1, CURRENT_DATE + 45),
+        ('00000000-0000-0000-0000-000000000105', 'Noah', 'Sub', '+15551000005', 'active', TRUE, 2, CURRENT_DATE + 60),
+        ('00000000-0000-0000-0000-000000000106', 'Eli', 'Sub', '+15551000006', 'active', TRUE, 3, CURRENT_DATE + 15),
+        ('00000000-0000-0000-0000-000000000107', 'Grace', 'Sub', '+15551000007', 'active', TRUE, 4, CURRENT_DATE - 1),
+        ('00000000-0000-0000-0000-000000000108', 'Tara', 'Pending', '+15551000008', 'pending_onboarding', FALSE, NULL, NULL)
     RETURNING id, first_name
 ),
 shifts_seed AS (

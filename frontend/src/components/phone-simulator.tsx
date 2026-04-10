@@ -21,6 +21,16 @@ const EMPTY_SIMULATOR_STATE: SimulatorPayload = {
 
 const QUICK_REPLIES = ['YES', 'NO', 'SUB', 'HELP'];
 
+function isSimulatorPayload(payload: unknown): payload is SimulatorPayload {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'volunteers' in payload &&
+    'selectedPhoneNumber' in payload &&
+    'conversation' in payload
+  );
+}
+
 function formatTimestamp(value: string): string {
   return new Date(value).toLocaleString([], {
     month: 'short',
@@ -33,9 +43,14 @@ function formatTimestamp(value: string): string {
 async function fetchSimulatorPayload(phoneNumber?: string): Promise<SimulatorPayload> {
   const query = phoneNumber ? `?phone=${encodeURIComponent(phoneNumber)}` : '';
   const response = await fetch(`/api/simulator${query}`, { cache: 'no-store' });
-  const payload = (await response.json()) as SimulatorPayload | { error: string };
+  const payload = (await response.json()) as SimulatorPayload | { error?: string };
+  const errorMessage = 'error' in payload && typeof payload.error === 'string' ? payload.error : '';
 
-  if (!response.ok || 'error' in payload) {
+  if (!response.ok || errorMessage) {
+    throw new Error(errorMessage || 'Unable to refresh the simulator view.');
+  }
+
+  if (!isSimulatorPayload(payload)) {
     throw new Error('Unable to refresh the simulator view.');
   }
 
@@ -53,10 +68,11 @@ export function PhoneSimulator() {
     const phoneNumber = nextPhoneNumber ?? selectedPhoneNumber;
     try {
       const payload = await fetchSimulatorPayload(phoneNumber);
+      const resolvedPhoneNumber = phoneNumber || payload.selectedPhoneNumber || '';
 
       startTransition(() => {
         setSimulatorState(payload);
-        setSelectedPhoneNumber(payload.selectedPhoneNumber ?? '');
+        setSelectedPhoneNumber(resolvedPhoneNumber);
         setErrorMessage('');
       });
     } catch (error) {
@@ -68,13 +84,14 @@ export function PhoneSimulator() {
   }
 
   useEffect(() => {
-    const loadInitialConversation = async () => {
+    const loadConversation = async () => {
       try {
-        const payload = await fetchSimulatorPayload();
+        const payload = await fetchSimulatorPayload(selectedPhoneNumber || undefined);
+        const resolvedPhoneNumber = selectedPhoneNumber || payload.selectedPhoneNumber || '';
 
         startTransition(() => {
           setSimulatorState(payload);
-          setSelectedPhoneNumber(payload.selectedPhoneNumber ?? '');
+          setSelectedPhoneNumber(resolvedPhoneNumber);
           setErrorMessage('');
         });
       } catch (error) {
@@ -85,14 +102,14 @@ export function PhoneSimulator() {
       }
     };
 
-    void loadInitialConversation();
+    void loadConversation();
 
     const interval = window.setInterval(() => {
-      void loadInitialConversation();
+      void loadConversation();
     }, 4000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [selectedPhoneNumber]);
 
   async function sendMessage(message: string) {
     if (!selectedPhoneNumber || !message.trim()) {
@@ -113,8 +130,10 @@ export function PhoneSimulator() {
         }),
       });
 
+      const payload = (await response.json()) as { error?: string };
+
       if (!response.ok) {
-        throw new Error('The simulator could not process that message.');
+        throw new Error(payload.error || 'The simulator could not process that message.');
       }
 
       startTransition(() => {

@@ -38,6 +38,8 @@ export type VolunteerRecord = {
   last_name: string;
   phone_number: string;
   status: 'active' | 'inactive' | 'pending_onboarding';
+  is_substitute: boolean;
+  substitute_rank: number | null;
   driver_license_url: string | null;
   insurance_url: string | null;
   insurance_expiry: string | null;
@@ -58,6 +60,7 @@ export type ScheduleRecord = {
   volunteer_id: string | null;
   scheduled_date: string;
   starts_at: string;
+  coordinator_taken_over: boolean;
   status: ScheduleStatus;
 };
 
@@ -66,6 +69,7 @@ export type SubRequestRecord = {
   created_at: string;
   schedule_id: string | null;
   requesting_volunteer_id: string | null;
+  coordinator_taken_over: boolean;
   status: SubRequestStatus;
   resolved_by_volunteer_id: string | null;
 };
@@ -106,6 +110,9 @@ export type DashboardAlert = {
   title: string;
   description: string;
   createdAt: string;
+  entityId: string;
+  entityType: 'schedule' | 'sub_request';
+  takenOver: boolean;
   severity: 'high' | 'medium';
 };
 

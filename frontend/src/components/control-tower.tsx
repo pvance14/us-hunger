@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { startTransition, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import type { DashboardAlert, DashboardPulse, DashboardSnapshot, DashboardStatCard } from '@/lib/types';
 
 const EMPTY_SNAPSHOT: DashboardSnapshot = {
@@ -31,9 +32,22 @@ function formatRelative(value: string): string {
 
 async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
   const response = await fetch('/api/dashboard', { cache: 'no-store' });
-  const nextSnapshot = (await response.json()) as DashboardSnapshot | { error: string };
+  const nextSnapshot = (await response.json()) as DashboardSnapshot | { error?: string };
+  const errorMessage = 'error' in nextSnapshot && typeof nextSnapshot.error === 'string' ? nextSnapshot.error : '';
 
-  if (!response.ok || 'error' in nextSnapshot) {
+  if (!response.ok || errorMessage) {
+    throw new Error(errorMessage || 'Unable to refresh the Control Tower snapshot.');
+  }
+
+  if (
+    !(
+      typeof nextSnapshot === 'object' &&
+      nextSnapshot !== null &&
+      'funnel' in nextSnapshot &&
+      'alerts' in nextSnapshot &&
+      'pulses' in nextSnapshot
+    )
+  ) {
     throw new Error('Unable to refresh the Control Tower snapshot.');
   }
 
@@ -44,6 +58,7 @@ export function ControlTower() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot>(EMPTY_SNAPSHOT);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [takingOverAlertIds, setTakingOverAlertIds] = useState<string[]>([]);
 
   async function refreshDashboard() {
     try {
@@ -66,12 +81,70 @@ export function ControlTower() {
   useEffect(() => {
     void refreshDashboard();
 
-    const interval = window.setInterval(() => {
-      void refreshDashboard();
-    }, 5000);
+    const channel = supabase
+      .channel('control-tower-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_events' }, () => {
+        void refreshDashboard();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sub_requests' }, () => {
+        void refreshDashboard();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, () => {
+        void refreshDashboard();
+      })
+      .subscribe();
 
-    return () => window.clearInterval(interval);
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
+
+  async function handleTakeOver(alert: DashboardAlert) {
+    if (alert.takenOver || takingOverAlertIds.includes(alert.id)) {
+      return;
+    }
+
+    setTakingOverAlertIds((current) => [...current, alert.id]);
+    setSnapshot((current) => ({
+      ...current,
+      alerts: current.alerts.map((currentAlert) =>
+        currentAlert.id === alert.id ? { ...currentAlert, takenOver: true } : currentAlert,
+      ),
+    }));
+
+    try {
+      const response = await fetch('/api/dashboard/takeover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          entityId: alert.entityId,
+          entityType: alert.entityType,
+        }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not take over this alert.');
+      }
+
+      await refreshDashboard();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not take over this alert.';
+
+      setSnapshot((current) => ({
+        ...current,
+        alerts: current.alerts.map((currentAlert) =>
+          currentAlert.id === alert.id ? { ...currentAlert, takenOver: false } : currentAlert,
+        ),
+      }));
+      setErrorMessage(message);
+    } finally {
+      setTakingOverAlertIds((current) => current.filter((alertId) => alertId !== alert.id));
+    }
+  }
 
   return (
     <main className="min-h-screen px-6 py-8 lg:px-10">
@@ -150,7 +223,14 @@ export function ControlTower() {
                   No active escalations. Use the simulator to trigger `HELP`, a danger-zone `SUB`, or an exhausted search.
                 </div>
               ) : (
-                snapshot.alerts.map((alert) => <AlertCard key={alert.id} alert={alert} />)
+                snapshot.alerts.map((alert) => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    isTakingOver={takingOverAlertIds.includes(alert.id)}
+                    onTakeOver={handleTakeOver}
+                  />
+                ))
               )}
             </div>
           </section>
@@ -219,7 +299,15 @@ function StatCard({ stat }: { stat: DashboardStatCard }) {
   );
 }
 
-function AlertCard({ alert }: { alert: DashboardAlert }) {
+function AlertCard({
+  alert,
+  isTakingOver,
+  onTakeOver,
+}: {
+  alert: DashboardAlert;
+  isTakingOver: boolean;
+  onTakeOver: (alert: DashboardAlert) => Promise<void>;
+}) {
   return (
     <div className="rounded-[1.5rem] border border-rose-400/25 bg-rose-950/30 p-4">
       <div className="flex items-start justify-between gap-4">
@@ -232,6 +320,14 @@ function AlertCard({ alert }: { alert: DashboardAlert }) {
         </span>
       </div>
       <p className="mt-4 text-xs font-mono text-rose-200/60">{formatRelative(alert.createdAt)}</p>
+      <button
+        type="button"
+        disabled={alert.takenOver || isTakingOver}
+        onClick={() => void onTakeOver(alert)}
+        className="mt-4 rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-rose-100 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {alert.takenOver ? 'Coordinator Active' : isTakingOver ? 'Taking Over...' : 'Take Over'}
+      </button>
     </div>
   );
 }
