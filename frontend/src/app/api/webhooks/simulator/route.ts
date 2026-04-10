@@ -1,91 +1,373 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { inngest } from '@/lib/inngest/client';
+import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import {
+  findVolunteerByPhone,
+  getNextActiveScheduleForVolunteer,
+  getOpenSubRequestForSchedule,
+  getPendingAttemptForVolunteer,
+  recordMessageEvent,
+} from '@/lib/server/mvp';
+import type { ScheduleRecord, ShiftRecord, SubRequestAttemptRecord, SubRequestRecord, VolunteerRecord } from '@/lib/types';
+
+export const runtime = 'nodejs';
+
+type ScheduleWithShift = ScheduleRecord & {
+  shift: ShiftRecord | null;
+  volunteer: VolunteerRecord | null;
+};
+
+function normalizeInboundText(text: string | null | undefined): string {
+  return text?.trim().toUpperCase() ?? '';
+}
+
+async function getSubRequestById(subRequestId: string): Promise<SubRequestRecord | null> {
+  const { data, error } = await supabaseAdmin
+    .from('sub_requests')
+    .select('*')
+    .eq('id', subRequestId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as SubRequestRecord | null) ?? null;
+}
+
+async function getScheduleById(scheduleId: string): Promise<ScheduleWithShift | null> {
+  const { data, error } = await supabaseAdmin
+    .from('schedules')
+    .select('*, shift:shifts(*), volunteer:volunteers(*)')
+    .eq('id', scheduleId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as ScheduleWithShift | null) ?? null;
+}
+
+async function resolveSubstituteAcceptance(
+  volunteer: VolunteerRecord,
+  attempt: SubRequestAttemptRecord,
+): Promise<{ scheduleId: string; shiftName: string }> {
+  const subRequest = await getSubRequestById(attempt.sub_request_id);
+
+  if (!subRequest || !subRequest.schedule_id) {
+    throw new Error('Substitute attempt is missing its request context.');
+  }
+
+  const schedule = await getScheduleById(subRequest.schedule_id);
+
+  if (!schedule) {
+    throw new Error('Could not load the schedule for this substitute attempt.');
+  }
+
+  await supabaseAdmin
+    .from('sub_request_attempts')
+    .update({
+      status: 'accepted',
+      responded_at: new Date().toISOString(),
+    })
+    .eq('id', attempt.id)
+    .eq('status', 'sent');
+
+  await supabaseAdmin
+    .from('sub_request_attempts')
+    .update({ status: 'skipped' })
+    .eq('sub_request_id', attempt.sub_request_id)
+    .neq('id', attempt.id)
+    .in('status', ['queued', 'sent']);
+
+  await supabaseAdmin
+    .from('sub_requests')
+    .update({
+      status: 'resolved',
+      resolved_by_volunteer_id: volunteer.id,
+    })
+    .eq('id', attempt.sub_request_id);
+
+  await supabaseAdmin
+    .from('schedules')
+    .update({
+      volunteer_id: volunteer.id,
+      status: 'confirmed',
+    })
+    .eq('id', schedule.id);
+
+  await recordMessageEvent({
+    phoneNumber: volunteer.phone_number,
+    volunteerId: volunteer.id,
+    scheduleId: schedule.id,
+    subRequestId: attempt.sub_request_id,
+    subRequestAttemptId: attempt.id,
+    direction: 'outbound',
+    body: `You are confirmed for ${schedule.shift?.name ?? 'the open shift'}. Thank you for stepping in.`,
+    messageType: 'sub_acceptance',
+  });
+
+  if (subRequest.requesting_volunteer_id) {
+    const { data: requester } = await supabaseAdmin
+      .from('volunteers')
+      .select('*')
+      .eq('id', subRequest.requesting_volunteer_id)
+      .maybeSingle();
+
+    const typedRequester = (requester as VolunteerRecord | null) ?? null;
+
+    if (typedRequester) {
+      await recordMessageEvent({
+        phoneNumber: typedRequester.phone_number,
+        volunteerId: typedRequester.id,
+        scheduleId: schedule.id,
+        subRequestId: attempt.sub_request_id,
+        direction: 'outbound',
+        body: `${volunteer.first_name} ${volunteer.last_name} has accepted ${schedule.shift?.name ?? 'your shift'}.`,
+        messageType: 'sub_resolved',
+      });
+    }
+  }
+
+  await recordMessageEvent({
+    phoneNumber: volunteer.phone_number,
+    volunteerId: volunteer.id,
+    scheduleId: schedule.id,
+    subRequestId: attempt.sub_request_id,
+    subRequestAttemptId: attempt.id,
+    direction: 'system',
+    body: `${volunteer.first_name} ${volunteer.last_name} accepted ${schedule.shift?.name ?? 'the shift'}.`,
+    messageType: 'status',
+  });
+
+  return {
+    scheduleId: schedule.id,
+    shiftName: schedule.shift?.name ?? 'the shift',
+  };
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { from, text } = body;
+    const normalizedText = normalizeInboundText(text);
+    const volunteer = await findVolunteerByPhone(from);
 
-    console.log(`[SMS SIMULATOR] Received message from ${from}: ${text}`);
+    await recordMessageEvent({
+      phoneNumber: from,
+      volunteerId: volunteer?.id ?? null,
+      direction: 'inbound',
+      body: text ?? '',
+      normalizedText,
+      messageType: 'incoming',
+      requiresReview: !['YES', 'NO', 'SUB', 'HELP', 'HUMAN'].includes(normalizedText),
+    });
 
-    const normalizedText = text?.trim().toUpperCase();
-
-    // 1. Find Volunteer by phone number
-    const { data: volunteer, error: volError } = await supabase
-      .from('volunteers')
-      .select('id')
-      .eq('phone_number', from)
-      .single();
-
-    if (volError || !volunteer) {
-      console.log(`=> Action: Unregistered volunteer ${from}. Ignoring.`);
+    if (!volunteer) {
       return NextResponse.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
     }
 
-    // 2. Find closest active schedule for this volunteer
-    const { data: schedule, error: scheduleError } = await supabase
-      .from('schedules')
-      .select('id, shift_id, scheduled_date')
-      .eq('volunteer_id', volunteer.id)
-      .in('status', ['scheduled', 'needs_review']) // they can reply to these
-      .order('scheduled_date', { ascending: true })
-      .limit(1)
-      .single();
+    const [schedule, pendingAttempt] = await Promise.all([
+      getNextActiveScheduleForVolunteer(volunteer.id),
+      getPendingAttemptForVolunteer(volunteer.id),
+    ]);
 
-    // If no schedule but they asked for help, still flag it.
-    // For simplicity, we assume they need a schedule to reply YES/NO/SUB
-    
-    // Base logic for parsing shortcodes
     switch (normalizedText) {
-      case 'YES':
-        if (schedule) {
-          console.log(`=> Action: Confirm shift for ${from} (Schedule: ${schedule.id})`);
-          await supabase.from('schedules').update({ status: 'completed' }).eq('id', schedule.id); // Or 'confirmed' but schema only has: 'scheduled', 'completed', 'cancelled', 'sub_requested'
+      case 'YES': {
+        if (pendingAttempt) {
+          const acceptance = await resolveSubstituteAcceptance(volunteer, pendingAttempt);
+
+          return NextResponse.json({
+            success: true,
+            parsed: normalizedText,
+            action: 'accepted_substitute_offer',
+            scheduleId: acceptance.scheduleId,
+            shiftName: acceptance.shiftName,
+          });
         }
-        break;
+
+        if (!schedule) {
+          await recordMessageEvent({
+            phoneNumber: volunteer.phone_number,
+            volunteerId: volunteer.id,
+            direction: 'outbound',
+            body: `We could not find an active shift to confirm. Reply HELP and a coordinator will jump in.`,
+            messageType: 'review',
+            requiresReview: true,
+          });
+
+          return NextResponse.json({ success: true, parsed: normalizedText, action: 'needs_review' });
+        }
+
+        await supabaseAdmin.from('schedules').update({ status: 'confirmed' }).eq('id', schedule.id);
+        await recordMessageEvent({
+          phoneNumber: volunteer.phone_number,
+          volunteerId: volunteer.id,
+          scheduleId: schedule.id,
+          direction: 'outbound',
+          body: `Thanks, you’re confirmed for ${schedule.shift?.name ?? 'your shift'}.`,
+          messageType: 'confirmation',
+        });
+
+        return NextResponse.json({ success: true, parsed: normalizedText, action: 'confirmed_shift' });
+      }
       case 'NO':
-      case 'SUB':
-        if (schedule) {
-          console.log(`=> Action: Trigger sub search for ${from} (Schedule: ${schedule.id})`);
-          
-          await supabase.from('schedules').update({ status: 'sub_requested' }).eq('id', schedule.id);
-          
-          const { data: subReq } = await supabase.from('sub_requests').insert({
-            schedule_id: schedule.id,
-            requesting_volunteer_id: volunteer.id,
-            status: 'searching'
-          }).select().single();
+      case 'SUB': {
+        if (!schedule || !schedule.shift_id) {
+          await recordMessageEvent({
+            phoneNumber: volunteer.phone_number,
+            volunteerId: volunteer.id,
+            direction: 'outbound',
+            body: `We could not find a shift to update. Reply HELP for coordinator support.`,
+            messageType: 'review',
+            requiresReview: true,
+          });
 
-          if (subReq) {
-             await inngest.send({
-                name: 'shift/sub.requested',
-                data: {
-                  subRequestId: subReq.id,
-                  scheduleId: schedule.id,
-                  shiftId: schedule.shift_id,
-                  volunteerId: volunteer.id,
-                  scheduledDate: schedule.scheduled_date
-                }
-             });
+          return NextResponse.json({ success: true, parsed: normalizedText, action: 'needs_review' });
+        }
+
+        const hoursUntilShift = (new Date(schedule.starts_at).getTime() - Date.now()) / (1000 * 60 * 60);
+
+        if (hoursUntilShift <= 4) {
+          const existingSubRequest = await getOpenSubRequestForSchedule(schedule.id);
+          let subRequestId = existingSubRequest?.id ?? null;
+
+          if (!subRequestId) {
+            const { data: createdSubRequest, error: subRequestError } = await supabaseAdmin
+              .from('sub_requests')
+              .insert({
+                schedule_id: schedule.id,
+                requesting_volunteer_id: volunteer.id,
+                status: 'escalated',
+              })
+              .select('*')
+              .single();
+
+            if (subRequestError) {
+              throw subRequestError;
+            }
+
+            subRequestId = (createdSubRequest as SubRequestRecord).id;
+          } else {
+            await supabaseAdmin.from('sub_requests').update({ status: 'escalated' }).eq('id', subRequestId);
           }
-        }
-        break;
-      case 'HELP':
-      case 'HUMAN':
-        if (schedule) {
-          console.log(`=> Action: Escalate schedule ${schedule.id} to staff review`);
-          await supabase.from('schedules').update({ status: 'needs_review' }).eq('id', schedule.id); // note schema doesn't technically have this by default, but wait, schema only has 'scheduled', 'completed', 'cancelled', 'sub_requested'
-          // We'll update the schema or just log it
-        }
-        console.log(`[ALERT] Volunteer ${from} requested HUMAN/HELP.`);
-        break;
-      default:
-        console.log(`=> Action: Unrecognized input from ${from}. Logging for NLP/Staff Review.`);
-        break;
-    }
 
-    return NextResponse.json({ success: true, parsed: normalizedText });
+          await supabaseAdmin.from('schedules').update({ status: 'danger_zone' }).eq('id', schedule.id);
+
+          await recordMessageEvent({
+            phoneNumber: volunteer.phone_number,
+            volunteerId: volunteer.id,
+            scheduleId: schedule.id,
+            subRequestId,
+            direction: 'outbound',
+            body: `This shift starts soon, so a coordinator has been alerted for manual coverage.`,
+            messageType: 'danger_zone',
+            requiresReview: true,
+          });
+
+          return NextResponse.json({ success: true, parsed: normalizedText, action: 'danger_zone' });
+        }
+
+        const existingSearchingRequest = await getOpenSubRequestForSchedule(schedule.id);
+        let subRequest = existingSearchingRequest;
+
+        await supabaseAdmin.from('schedules').update({ status: 'sub_requested' }).eq('id', schedule.id);
+
+        if (!subRequest || subRequest.status !== 'searching') {
+          const { data: createdSubRequest, error: subRequestError } = await supabaseAdmin
+            .from('sub_requests')
+            .insert({
+              schedule_id: schedule.id,
+              requesting_volunteer_id: volunteer.id,
+              status: 'searching',
+            })
+            .select('*')
+            .single();
+
+          if (subRequestError) {
+            throw subRequestError;
+          }
+
+          subRequest = createdSubRequest as SubRequestRecord;
+        }
+
+        await recordMessageEvent({
+          phoneNumber: volunteer.phone_number,
+          volunteerId: volunteer.id,
+          scheduleId: schedule.id,
+          subRequestId: subRequest.id,
+          direction: 'outbound',
+          body: `We’re now searching for a substitute for ${schedule.shift?.name ?? 'your shift'}.`,
+          messageType: 'sub_request',
+        });
+
+        await inngest.send({
+          name: 'shift/sub.requested',
+          data: {
+            subRequestId: subRequest.id,
+            scheduleId: schedule.id,
+            shiftId: schedule.shift_id,
+            volunteerId: volunteer.id,
+            scheduledDate: schedule.scheduled_date,
+            startsAt: schedule.starts_at,
+          },
+        });
+
+        return NextResponse.json({ success: true, parsed: normalizedText, action: 'sub_requested' });
+      }
+      case 'HELP':
+      case 'HUMAN': {
+        if (schedule) {
+          await supabaseAdmin.from('schedules').update({ status: 'needs_review' }).eq('id', schedule.id);
+        }
+
+        if (pendingAttempt) {
+          await supabaseAdmin
+            .from('sub_requests')
+            .update({ status: 'escalated' })
+            .eq('id', pendingAttempt.sub_request_id);
+        }
+
+        await recordMessageEvent({
+          phoneNumber: volunteer.phone_number,
+          volunteerId: volunteer.id,
+          scheduleId: schedule?.id ?? null,
+          subRequestId: pendingAttempt?.sub_request_id ?? null,
+          direction: 'outbound',
+          body: `A coordinator has been notified and will take over this conversation.`,
+          messageType: 'help',
+          requiresReview: true,
+        });
+
+        return NextResponse.json({ success: true, parsed: normalizedText, action: 'escalated' });
+      }
+      default: {
+        if (schedule) {
+          await supabaseAdmin.from('schedules').update({ status: 'needs_review' }).eq('id', schedule.id);
+        }
+
+        if (pendingAttempt) {
+          await supabaseAdmin
+            .from('sub_requests')
+            .update({ status: 'escalated' })
+            .eq('id', pendingAttempt.sub_request_id);
+        }
+
+        await recordMessageEvent({
+          phoneNumber: volunteer.phone_number,
+          volunteerId: volunteer.id,
+          scheduleId: schedule?.id ?? null,
+          subRequestId: pendingAttempt?.sub_request_id ?? null,
+          direction: 'outbound',
+          body: `We flagged that message for a human because it needs more than the simulator shortcuts.`,
+          messageType: 'review',
+          requiresReview: true,
+        });
+
+        return NextResponse.json({ success: true, parsed: normalizedText, action: 'needs_review' });
+      }
+    }
   } catch (error) {
     console.error(`[SMS SIMULATOR] Error processing webhook:`, error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

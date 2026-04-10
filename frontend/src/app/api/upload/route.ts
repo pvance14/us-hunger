@@ -7,6 +7,8 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-se
 
 const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -14,11 +16,12 @@ export async function POST(request: Request) {
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const phoneNumber = formData.get('phoneNumber') as string;
+    const insuranceExpiry = formData.get('insuranceExpiry') as string | null;
     
     const driverLicense = formData.get('driverLicense') as File | null;
     const insurance = formData.get('insurance') as File | null;
 
-    if (!firstName || !lastName || !phoneNumber) {
+    if (!firstName || !lastName || !phoneNumber || !insuranceExpiry) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -57,11 +60,6 @@ export async function POST(request: Request) {
       insuranceUrl = data.path;
     }
 
-    // Insert volunteer into database
-    // For mockup, we can set insurance expiry to 60 days from now to simulate compliance
-    const insuranceExpiryDate = new Date();
-    insuranceExpiryDate.setDate(insuranceExpiryDate.getDate() + 60);
-
     const { data: volunteer, error: dbError } = await adminSupabase
       .from('volunteers')
       .insert({
@@ -71,7 +69,7 @@ export async function POST(request: Request) {
         status: 'active', // For MVP, immediately activate them instead of pending
         driver_license_url: driverLicenseUrl,
         insurance_url: insuranceUrl,
-        insurance_expiry: insuranceExpiryDate.toISOString().split('T')[0] // format YYYY-MM-DD
+        insurance_expiry: insuranceExpiry,
       })
       .select()
       .single();
@@ -82,8 +80,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, volunteer });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     console.error(`[ONBOARDING API] Error:`, error);
-    return NextResponse.json({ success: false, error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

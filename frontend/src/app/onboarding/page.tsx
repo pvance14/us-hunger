@@ -8,6 +8,7 @@ export default function OnboardingPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [insuranceExpiry, setInsuranceExpiry] = useState('');
   const [dlFile, setDlFile] = useState<File | null>(null);
   const [insFile, setInsFile] = useState<File | null>(null);
 
@@ -31,6 +32,7 @@ export default function OnboardingPage() {
       formData.append('firstName', firstName);
       formData.append('lastName', lastName);
       formData.append('phoneNumber', phoneNumber);
+      formData.append('insuranceExpiry', insuranceExpiry);
       if (dlFile) formData.append('driverLicense', dlFile);
       if (insFile) formData.append('insurance', insFile);
 
@@ -47,10 +49,10 @@ export default function OnboardingPage() {
       setSuccess(true);
       // Wait a moment then maybe push somewhere else or just leave success message
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/');
       }, 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Something went wrong');
+    } catch (error: unknown) {
+      setErrorMsg(error instanceof Error ? error.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
     }
@@ -122,19 +124,30 @@ export default function OnboardingPage() {
                   className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
                 />
              </div>
+
+             <div className="flex flex-col">
+                <label className="text-sm font-semibold text-indigo-100 mb-1 ml-1">Insurance Expiry</label>
+                <input 
+                  type="date" 
+                  required
+                  value={insuranceExpiry}
+                  onChange={e => setInsuranceExpiry(e.target.value)}
+                  className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
+                />
+             </div>
           </div>
 
           <hr className="border-white/10" />
 
           <div className="space-y-4">
              <div>
-                <h3 className="text-sm font-semibold text-indigo-100 mb-1 ml-1">Driver's License</h3>
+                <h3 className="text-sm font-semibold text-indigo-100 mb-1 ml-1">Driver&apos;s License</h3>
                 <label className="relative group cursor-pointer block">
                   <div className="absolute inset-0 bg-blue-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
                   <div className="relative bg-black/30 border border-dashed border-indigo-400/50 hover:border-indigo-400 rounded-xl p-6 flex flex-col items-center justify-center transition-all">
                     <span className="text-indigo-200 text-sm font-medium">{dlFile ? dlFile.name : 'Tap to upload picture'}</span>
                     <p className="text-xs text-indigo-400/70 mt-1">JPEG or PNG</p>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, setDlFile)} />
+                    <input type="file" accept="image/*" required className="hidden" onChange={(e) => handleFileChange(e, setDlFile)} />
                   </div>
                 </label>
              </div>
@@ -146,7 +159,7 @@ export default function OnboardingPage() {
                   <div className="relative bg-black/30 border border-dashed border-purple-400/50 hover:border-purple-400 rounded-xl p-6 flex flex-col items-center justify-center transition-all">
                     <span className="text-purple-200 text-sm font-medium">{insFile ? insFile.name : 'Tap to upload document'}</span>
                     <p className="text-xs text-purple-400/70 mt-1">PDF, JPEG, or PNG</p>
-                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleFileChange(e, setInsFile)} />
+                    <input type="file" accept="image/*,.pdf" required className="hidden" onChange={(e) => handleFileChange(e, setInsFile)} />
                   </div>
                 </label>
              </div>
