@@ -5,7 +5,7 @@ This repository contains an MVP for an AI-assisted volunteer coordination system
 ## What is in this repo
 
 - `frontend/`: Next.js app for the dashboard, onboarding flow, simulator, and API routes
-- `supabase/`: local Supabase config, migrations, and seed data
+- `supabase/`: Supabase migrations and seed data for the linked remote project
 - `aiDocs/`: architecture notes, MVP scope, and roadmap documents
 - `prd.md`: product requirements for the volunteer coordination agent
 
@@ -26,35 +26,31 @@ cd frontend
 npm install
 ```
 
-### 2. Create local environment variables
+### 2. Create environment variables
 
 Create `frontend/.env.local` with:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-remote-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-remote-service-role-key
 SUBSTITUTE_PING_INTERVAL=1m
 ```
 
 Notes:
 
 - `SUBSTITUTE_PING_INTERVAL` is optional. The app already defaults to `1m` in development and `15m` otherwise.
-- Some code paths fall back to mock values, but real local testing works best with actual Supabase credentials.
+- Use the credentials from your remote Supabase project.
 
-### 3. Start Supabase locally
+### 3. Apply the Supabase schema to the linked remote project
 
 From the project root:
 
 ```bash
-supabase start
+npx supabase db push
 ```
 
-If you need a clean local database with the seed data reapplied:
-
-```bash
-supabase db reset
-```
+If you need to load the demo seed data into the linked remote project, apply `supabase/seed.sql` intentionally after confirming the remote database can be overwritten.
 
 ### 4. Run the frontend
 
@@ -70,8 +66,7 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 ```bash
 cd frontend && npm run lint
 cd frontend && npm run build
-supabase start
-supabase db reset
+npx supabase db push
 ```
 
 ## Project focus

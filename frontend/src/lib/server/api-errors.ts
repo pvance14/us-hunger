@@ -20,7 +20,7 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   const combined = [message, details, hint].filter(Boolean).join(' ').trim();
 
   if (details.includes('ECONNREFUSED') && details.includes('127.0.0.1:54321')) {
-    return 'Could not reach local Supabase at 127.0.0.1:54321. Start Supabase and retry.';
+    return 'Could not reach the configured Supabase project at 127.0.0.1:54321. Check your environment variables and retry.';
   }
 
   if (details.includes('ENOTFOUND') && message.includes('fetch failed')) {
