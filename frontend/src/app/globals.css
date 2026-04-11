@@ -1,37 +1,60 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-heading: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
-  
-  --color-brand-cyan: #06b6d4;
-  --color-brand-blue: #3b82f6;
-  --color-brand-purple: #8b5cf6;
-  
-  --color-bg-dark: #0b0f19;
-  --color-bg-panel: rgba(26, 34, 53, 0.6);
-  --color-border-glow: rgba(255, 255, 255, 0.08);
+  --font-sans: var(--font-geist-sans), "Geist", "Inter", sans-serif;
+  --font-dm-sans: var(--font-dm-sans), "DM Sans", sans-serif;
+
+  /* Trust palette */
+  --color-slate-50:  #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-900: #1e293b;
+
+  --color-blue-50:  #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-sage-50:  #F0FAF6;
+  --color-sage-100: #E0F2EC;
+  --color-sage-500: #3A8F6B;
+  --color-sage-600: #3A8F6B;
+  --color-sage-700: #2E7057;
+
+  --color-amber-50:  #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+
+  --color-rose-50:  #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
 }
 
 body {
-  background-color: var(--color-bg-dark);
-  background-image: radial-gradient(circle at top center, #1a2235 0%, #0b0f19 100%);
-  color: #f8fafc;
+  background-color: #F0F4F8;
+  color: #1e293b;
   min-height: 100vh;
 }
 
-/* Custom Scrollbar for the dark theme */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #94a3b8;
 }
