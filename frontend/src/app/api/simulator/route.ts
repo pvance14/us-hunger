@@ -10,7 +10,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const selectedPhoneNumber = url.searchParams.get('phone');
     const volunteers = await listSimulatorVolunteers();
-    const fallbackPhoneNumber = volunteers[0]?.phoneNumber ?? null;
+    const fallbackPhoneNumber =
+      volunteers.find((volunteer) => volunteer.phoneNumber === '+15551000001')?.phoneNumber
+      ?? volunteers[0]?.phoneNumber
+      ?? null;
     const phoneNumber = selectedPhoneNumber || fallbackPhoneNumber;
 
     const conversation = phoneNumber

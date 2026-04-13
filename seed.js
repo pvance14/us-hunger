@@ -100,7 +100,7 @@ async function run() {
     { id: '20000000-0000-0000-0000-000000000308', shift_id: '10000000-0000-0000-0000-000000000203', volunteer_id: '00000000-0000-0000-0000-000000000103', scheduled_date: dateOnly(addHours(56)), starts_at: addHours(56), status: 'scheduled' },
     { id: '20000000-0000-0000-0000-000000000309', shift_id: '10000000-0000-0000-0000-000000000205', volunteer_id: '00000000-0000-0000-0000-000000000105', scheduled_date: dateOnly(addHours(58)), starts_at: addHours(58), status: 'scheduled' },
     { id: '20000000-0000-0000-0000-000000000310', shift_id: '10000000-0000-0000-0000-000000000202', volunteer_id: '00000000-0000-0000-0000-000000000102', scheduled_date: dateOnly(addHours(5)),  starts_at: addHours(5),  status: 'sub_requested' },
-    { id: '20000000-0000-0000-0000-000000000311', shift_id: '10000000-0000-0000-0000-000000000204', volunteer_id: '00000000-0000-0000-0000-000000000104', scheduled_date: dateOnly(addHours(3)),  starts_at: addHours(3),  status: 'needs_review' },
+    { id: '20000000-0000-0000-0000-000000000311', shift_id: '10000000-0000-0000-0000-000000000204', volunteer_id: '00000000-0000-0000-0000-000000000105', scheduled_date: dateOnly(addHours(3)),  starts_at: addHours(3),  status: 'needs_review' },
     { id: '20000000-0000-0000-0000-000000000312', shift_id: '10000000-0000-0000-0000-000000000206', volunteer_id: '00000000-0000-0000-0000-000000000106', scheduled_date: dateOnly(addMinutes(90)), starts_at: addMinutes(90), status: 'danger_zone' },
   ]);
   if (scErr) { console.error('  Schedules error:', scErr.message); process.exit(1); }
@@ -110,7 +110,7 @@ async function run() {
   console.log('Inserting sub requests...');
   const { error: srErr } = await supabase.from('sub_requests').insert([
     { id: '30000000-0000-0000-0000-000000000401', schedule_id: '20000000-0000-0000-0000-000000000310', requesting_volunteer_id: '00000000-0000-0000-0000-000000000102', status: 'failed' },
-    { id: '30000000-0000-0000-0000-000000000402', schedule_id: '20000000-0000-0000-0000-000000000311', requesting_volunteer_id: '00000000-0000-0000-0000-000000000104', status: 'escalated' },
+    { id: '30000000-0000-0000-0000-000000000402', schedule_id: '20000000-0000-0000-0000-000000000311', requesting_volunteer_id: '00000000-0000-0000-0000-000000000105', status: 'escalated' },
     { id: '30000000-0000-0000-0000-000000000403', schedule_id: '20000000-0000-0000-0000-000000000312', requesting_volunteer_id: '00000000-0000-0000-0000-000000000106', status: 'searching' },
   ]);
   if (srErr) { console.error('  Sub requests error:', srErr.message); process.exit(1); }

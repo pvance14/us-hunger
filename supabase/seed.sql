@@ -106,7 +106,7 @@ VALUES
   -- ⚠️ Needs review (Diana sent a free-text message the bot couldn't parse)
   ('20000000-0000-0000-0000-000000000311',
     '10000000-0000-0000-0000-000000000204',
-    '00000000-0000-0000-0000-000000000104',
+    '00000000-0000-0000-0000-000000000105',
     (NOW() + INTERVAL '3 hours')::date,  NOW() + INTERVAL '3 hours',  'needs_review'),
 
   -- 🚨 Danger zone (Marcus cancelled with 90 min notice, no sub found)
@@ -129,7 +129,7 @@ VALUES
   -- Escalated: Diana's shift needs human follow-up
   ('30000000-0000-0000-0000-000000000402',
     '20000000-0000-0000-0000-000000000311',
-    '00000000-0000-0000-0000-000000000104',
+    '00000000-0000-0000-0000-000000000105',
     'escalated'),
 
   -- Searching: Marcus's danger-zone shift, still trying

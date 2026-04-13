@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import type { DashboardAlert, DashboardPulse, DashboardSnapshot, DashboardStatCard } from '@/lib/types';
+import type { DashboardAlert, DashboardSnapshot, DashboardStatCard } from '@/lib/types';
 
 // ─── Design tokens (Figma exact values) ────────────────────────────
 const C = {
@@ -26,10 +26,6 @@ const C = {
 };
 
 const EMPTY_SNAPSHOT: DashboardSnapshot = { funnel: [], alerts: [], pulses: [] };
-
-function formatTime(value: string): string {
-  return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
 
 async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
   const response = await fetch('/api/dashboard', { cache: 'no-store' });
@@ -101,24 +97,6 @@ function MoreVertical() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gray500} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
-    </svg>
-  );
-}
-
-function TrendingUpIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.warning} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-      <polyline points="17 6 23 6 23 12"/>
-    </svg>
-  );
-}
-
-function TrendingDownIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.danger} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
-      <polyline points="17 18 23 18 23 12"/>
     </svg>
   );
 }
@@ -450,18 +428,6 @@ export function ControlTower() {
 
 // ─── Funnel Card (stat card) ─────────────────────────────────────────
 function FunnelCard({ stat }: { stat: DashboardStatCard }) {
-  const prevValueRef = useRef(stat.value);
-  const [pulsing, setPulsing] = useState(false);
-
-  useEffect(() => {
-    if (prevValueRef.current !== stat.value) {
-      prevValueRef.current = stat.value;
-      setPulsing(true);
-      const t = setTimeout(() => setPulsing(false), 600);
-      return () => clearTimeout(t);
-    }
-  }, [stat.value]);
-
   const iconEl =
     stat.title === 'Confirmed' ? <CheckCircleIcon color={C.success} /> :
     stat.title === 'Unconfirmed' ? <ClockIcon /> :
@@ -476,7 +442,8 @@ function FunnelCard({ stat }: { stat: DashboardStatCard }) {
 
   return (
     <motion.div
-      animate={pulsing ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+      key={`${stat.title}-${stat.value}`}
+      animate={{ scale: [1, 1.03, 1] }}
       transition={{ duration: 0.4 }}
       className="rounded-lg bg-white p-6 flex flex-col justify-between"
       style={{ boxShadow: C.cardShadow, minHeight: 140 }}
