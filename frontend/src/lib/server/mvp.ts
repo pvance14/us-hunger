@@ -33,6 +33,10 @@ const REVIEWABLE_SCHEDULE_STATUSES: ScheduleStatus[] = [
 
 const SEARCHING_SUB_REQUEST_STATUS: SubRequestStatus = 'searching';
 
+function getUniqueNonNullCount(values: Array<string | null | undefined>): number {
+  return new Set(values.filter((value): value is string => typeof value === 'string' && value.length > 0)).size;
+}
+
 export function normalizePhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '');
 
@@ -420,6 +424,7 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
   }
 
   const schedules = (schedulesResult.data as ScheduleWithShift[]) ?? [];
+  const activeScheduleIds = schedules.map((schedule) => schedule.id);
   const messageEvents =
     ((messageEventsResult.data as (MessageEventRecord & {
       volunteer: Pick<VolunteerRecord, 'first_name' | 'last_name'> | null;
@@ -429,6 +434,25 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
       schedule: ScheduleWithShift | null;
     })[]) ?? []);
 
+  const relevantSubRequests = activeScheduleIds.length > 0
+    ? await supabaseAdmin
+        .from('sub_requests')
+        .select('schedule_id, requesting_volunteer_id')
+        .in('schedule_id', activeScheduleIds)
+    : { data: [], error: null };
+
+  if (relevantSubRequests.error) {
+    throw relevantSubRequests.error;
+  }
+
+  const subRequests = (relevantSubRequests.data as Pick<SubRequestRecord, 'schedule_id' | 'requesting_volunteer_id'>[]) ?? [];
+  const agreedCount = schedules.filter((schedule) => schedule.status === 'confirmed').length;
+  const cantMakeItCount = getUniqueNonNullCount(
+    subRequests
+      .filter((subRequest) => subRequest.requesting_volunteer_id)
+      .map((subRequest) => subRequest.schedule_id),
+  );
+
   const funnel = [
     {
       title: 'Total Shifts',
@@ -436,7 +460,7 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
     },
     {
       title: 'Confirmed',
-      value: schedules.filter((schedule) => schedule.status === 'confirmed').length,
+      value: agreedCount,
     },
     {
       title: 'Unconfirmed',
@@ -447,6 +471,14 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
       value: schedules.filter((schedule) =>
         ['sub_requested', 'needs_review', 'danger_zone'].includes(schedule.status),
       ).length,
+    },
+    {
+      title: 'Agreed to Shift',
+      value: agreedCount,
+    },
+    {
+      title: "Can't Make It",
+      value: cantMakeItCount,
     },
   ];
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getPhoneStorageFolderName, normalizePhoneNumber } from '@/lib/server/mvp';
+import { getPhoneStorageFolderName, normalizePhoneNumber, recordMessageEvent } from '@/lib/server/mvp';
 
 // We use the service role key to bypass RLS for onboarding, as the MVP doesn't have volunteer account auth yet.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co';
@@ -80,6 +80,14 @@ export async function POST(request: Request) {
       // Typically this errors if phone_number is duplicate
       return NextResponse.json({ success: false, error: dbError.message }, { status: 400 });
     }
+
+    await recordMessageEvent({
+      phoneNumber: normalizedPhoneNumber,
+      volunteerId: volunteer.id,
+      direction: 'outbound',
+      body: `Welcome to United Hunger, ${firstName}! You're signed up in the volunteer portal. We’ll text you here with shift reminders and next steps.`,
+      messageType: 'welcome',
+    });
 
     return NextResponse.json({ success: true, volunteer });
   } catch (error: unknown) {

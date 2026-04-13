@@ -312,7 +312,7 @@ export function ControlTower() {
           </div>
         )}
 
-        {/* Top row: Shift Status donut + 2x2 stat cards */}
+        {/* Top row: Shift Status donut + live stat cards */}
         <div className="flex gap-5">
           {/* Shift Status donut card */}
           <div className="rounded-lg bg-white p-5 flex flex-col" style={{ boxShadow: C.cardShadow, width: 400, flexShrink: 0 }}>
@@ -349,10 +349,10 @@ export function ControlTower() {
             </div>
           </div>
 
-          {/* 2x2 stat cards */}
+          {/* Live stat cards */}
           <div className="flex-1 grid grid-cols-2 gap-4">
             {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+              ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
               : snapshot.funnel.map((stat) => <FunnelCard key={stat.title} stat={stat} />)
             }
           </div>
@@ -429,13 +429,15 @@ export function ControlTower() {
 // ─── Funnel Card (stat card) ─────────────────────────────────────────
 function FunnelCard({ stat }: { stat: DashboardStatCard }) {
   const iconEl =
-    stat.title === 'Confirmed' ? <CheckCircleIcon color={C.success} /> :
+    stat.title === 'Confirmed' || stat.title === 'Agreed to Shift' ? <CheckCircleIcon color={C.success} /> :
     stat.title === 'Unconfirmed' ? <ClockIcon /> :
-    stat.title === 'Unfilled' ? <AlertIcon /> :
+    stat.title === 'Unfilled' || stat.title === "Can't Make It" ? <AlertIcon /> :
     <BriefcaseIcon />;
 
   const subLabel =
     stat.title === 'Confirmed' ? 'staffed' :
+    stat.title === 'Agreed to Shift' ? 'latest yes responses' :
+    stat.title === "Can't Make It" ? 'coverage requests opened' :
     stat.title === 'Unconfirmed' ? 'pending reply' :
     stat.title === 'Unfilled' ? 'needs attention' :
     'this period';
