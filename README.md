@@ -50,7 +50,13 @@ From the project root:
 npx supabase db push
 ```
 
-If you need to load the demo seed data into the linked remote project, apply `supabase/seed.sql` intentionally after confirming the remote database can be overwritten.
+If you need to reseed the linked remote project with the demo dashboard/simulator data, run:
+
+```bash
+cd frontend && node -r dotenv/config ../seed.js dotenv_config_path=.env.local
+```
+
+This clears and repopulates the demo tables, so only run it when you intend to overwrite the current remote data. If you are using `frontend/.env` instead of `frontend/.env.local`, change `dotenv_config_path=.env.local` to `dotenv_config_path=.env`.
 
 ### 4. Run the frontend
 
@@ -67,6 +73,7 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 cd frontend && npm run lint
 cd frontend && npm run build
 npx supabase db push
+cd frontend && node -r dotenv/config ../seed.js dotenv_config_path=.env.local
 ```
 
 ## Project focus

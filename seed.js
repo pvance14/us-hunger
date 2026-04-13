@@ -31,6 +31,15 @@ function subHours(h) {
 function subMinutes(m) {
   return new Date(Date.now() - m * 60 * 1000).toISOString();
 }
+function subTime({ days = 0, hours = 0, minutes = 0 }) {
+  return new Date(
+    Date.now() - (
+      (days * 24 * 60 * 60 * 1000)
+      + (hours * 60 * 60 * 1000)
+      + (minutes * 60 * 1000)
+    ),
+  ).toISOString();
+}
 function dateOnly(iso) {
   return iso.slice(0, 10);
 }
@@ -99,7 +108,7 @@ async function run() {
     { id: '20000000-0000-0000-0000-000000000307', shift_id: '10000000-0000-0000-0000-000000000201', volunteer_id: '00000000-0000-0000-0000-000000000101', scheduled_date: dateOnly(addHours(54)), starts_at: addHours(54), status: 'scheduled' },
     { id: '20000000-0000-0000-0000-000000000308', shift_id: '10000000-0000-0000-0000-000000000203', volunteer_id: '00000000-0000-0000-0000-000000000103', scheduled_date: dateOnly(addHours(56)), starts_at: addHours(56), status: 'scheduled' },
     { id: '20000000-0000-0000-0000-000000000309', shift_id: '10000000-0000-0000-0000-000000000205', volunteer_id: '00000000-0000-0000-0000-000000000105', scheduled_date: dateOnly(addHours(58)), starts_at: addHours(58), status: 'scheduled' },
-    { id: '20000000-0000-0000-0000-000000000310', shift_id: '10000000-0000-0000-0000-000000000202', volunteer_id: '00000000-0000-0000-0000-000000000102', scheduled_date: dateOnly(addHours(5)),  starts_at: addHours(5),  status: 'sub_requested' },
+    { id: '20000000-0000-0000-0000-000000000310', shift_id: '10000000-0000-0000-0000-000000000202', volunteer_id: '00000000-0000-0000-0000-000000000102', scheduled_date: dateOnly(addHours(5)),  starts_at: addHours(5),  status: 'confirmed' },
     { id: '20000000-0000-0000-0000-000000000311', shift_id: '10000000-0000-0000-0000-000000000204', volunteer_id: '00000000-0000-0000-0000-000000000105', scheduled_date: dateOnly(addHours(3)),  starts_at: addHours(3),  status: 'needs_review' },
     { id: '20000000-0000-0000-0000-000000000312', shift_id: '10000000-0000-0000-0000-000000000206', volunteer_id: '00000000-0000-0000-0000-000000000106', scheduled_date: dateOnly(addMinutes(90)), starts_at: addMinutes(90), status: 'danger_zone' },
   ]);
@@ -109,56 +118,47 @@ async function run() {
   // ─── Sub Requests ─────────────────────────────────────────────────────────────
   console.log('Inserting sub requests...');
   const { error: srErr } = await supabase.from('sub_requests').insert([
-    { id: '30000000-0000-0000-0000-000000000401', schedule_id: '20000000-0000-0000-0000-000000000310', requesting_volunteer_id: '00000000-0000-0000-0000-000000000102', status: 'failed' },
     { id: '30000000-0000-0000-0000-000000000402', schedule_id: '20000000-0000-0000-0000-000000000311', requesting_volunteer_id: '00000000-0000-0000-0000-000000000105', status: 'escalated' },
     { id: '30000000-0000-0000-0000-000000000403', schedule_id: '20000000-0000-0000-0000-000000000312', requesting_volunteer_id: '00000000-0000-0000-0000-000000000106', status: 'searching' },
   ]);
   if (srErr) { console.error('  Sub requests error:', srErr.message); process.exit(1); }
-  console.log('  3 sub requests inserted.\n');
+  console.log('  2 sub requests inserted.\n');
 
   // ─── Sub Request Attempts ─────────────────────────────────────────────────────
   console.log('Inserting sub request attempts...');
   const { error: saErr } = await supabase.from('sub_request_attempts').insert([
-    { sub_request_id: '30000000-0000-0000-0000-000000000401', candidate_volunteer_id: '00000000-0000-0000-0000-000000000107', attempt_order: 1, status: 'declined', contacted_at: subHours(2),   responded_at: subMinutes(100) },
-    { sub_request_id: '30000000-0000-0000-0000-000000000401', candidate_volunteer_id: '00000000-0000-0000-0000-000000000108', attempt_order: 2, status: 'declined', contacted_at: subMinutes(90), responded_at: subMinutes(75) },
-    { sub_request_id: '30000000-0000-0000-0000-000000000401', candidate_volunteer_id: '00000000-0000-0000-0000-000000000109', attempt_order: 3, status: 'expired',  contacted_at: subMinutes(70), responded_at: null },
     { sub_request_id: '30000000-0000-0000-0000-000000000403', candidate_volunteer_id: '00000000-0000-0000-0000-000000000107', attempt_order: 1, status: 'sent',     contacted_at: subMinutes(10), responded_at: null },
   ]);
   if (saErr) { console.error('  Sub request attempts error:', saErr.message); process.exit(1); }
-  console.log('  4 sub request attempts inserted.\n');
+  console.log('  1 sub request attempt inserted.\n');
 
   // ─── Message Events ───────────────────────────────────────────────────────────
   console.log('Inserting message events...');
   const { error: mErr } = await supabase.from('message_events').insert([
-    // Maya — confirmed Route 4A
-    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000301', sub_request_id: null, direction: 'outbound', message_type: 'reminder',        normalized_text: null,  requires_review: false, body: 'Hi Maya! Reminder: your Route 4A shift starts in 24 hrs. Reply YES to confirm or NO to cancel.' },
-    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000301', sub_request_id: null, direction: 'inbound',  message_type: 'confirmation',    normalized_text: 'YES', requires_review: false, body: 'YES' },
-    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000301', sub_request_id: null, direction: 'system',   message_type: 'status',          normalized_text: null,  requires_review: false, body: 'Maya Rodriguez confirmed for Route 4A. Shift is set.' },
+    // Maya — drip reminders + confirmation for Route 4A
+    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000307', sub_request_id: null, direction: 'outbound', message_type: 'reminder_t72',    normalized_text: null,  requires_review: false, body: 'Checking in on Route 4A this week. Reply YES to confirm or SUB if you need a replacement.', created_at: subTime({ days: 3 }) },
+    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000307', sub_request_id: null, direction: 'inbound',  message_type: 'confirmation',    normalized_text: 'YES', requires_review: false, body: 'YES', created_at: subTime({ days: 2, hours: 23, minutes: 55 }) },
+    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000307', sub_request_id: null, direction: 'system',   message_type: 'status',          normalized_text: null,  requires_review: false, body: 'Maya Rodriguez confirmed for Route 4A. Shift is set.', created_at: subTime({ days: 2, hours: 23, minutes: 54 }) },
+    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000301', sub_request_id: null, direction: 'outbound', message_type: 'reminder_t24',    normalized_text: null,  requires_review: false, body: 'Tomorrow is Route 4A. Bring blue insulated bags and check the volunteer map before departure.', created_at: subHours(24) },
+    { phone_number: '+15551000001', volunteer_id: '00000000-0000-0000-0000-000000000101', schedule_id: '20000000-0000-0000-0000-000000000301', sub_request_id: null, direction: 'outbound', message_type: 'reminder_t2',     normalized_text: null,  requires_review: false, body: 'Route 4A starts soon. Thanks for serving today. Reply HELP if you need a coordinator.', created_at: subHours(2) },
     // Sofia — confirmed Route 10C
-    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'outbound', message_type: 'reminder',        normalized_text: null,  requires_review: false, body: 'Hi Sofia! Your Route 10C shift is tomorrow. Bring printed manifests. Reply YES to confirm.' },
-    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'inbound',  message_type: 'confirmation',    normalized_text: 'YES', requires_review: false, body: 'YES will be there!' },
-    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'system',   message_type: 'status',          normalized_text: null,  requires_review: false, body: 'Sofia Okafor confirmed for Route 10C.' },
-    // Leo — sub requested, failed
-    { phone_number: '+15551000002', volunteer_id: '00000000-0000-0000-0000-000000000102', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: null,                                          direction: 'inbound',  message_type: 'cancellation',    normalized_text: 'SUB', requires_review: false, body: 'SUB' },
-    { phone_number: '+15551000002', volunteer_id: '00000000-0000-0000-0000-000000000102', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: null,                                          direction: 'outbound', message_type: 'acknowledgement', normalized_text: null,  requires_review: false, body: 'Got it Leo. We will find a substitute for your Route 7B shift and let you know.' },
-    { phone_number: '+15551000007', volunteer_id: '00000000-0000-0000-0000-000000000107', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'outbound', message_type: 'sub_offer',       normalized_text: null,  requires_review: false, body: 'Hi Ava! Can you cover Route 7B (Senior Center Annex) today at 3 PM? Reply YES or NO.' },
-    { phone_number: '+15551000007', volunteer_id: '00000000-0000-0000-0000-000000000107', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'inbound',  message_type: 'decline',         normalized_text: 'NO', requires_review: false, body: 'NO sorry I have a conflict' },
-    { phone_number: '+15551000008', volunteer_id: '00000000-0000-0000-0000-000000000108', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'outbound', message_type: 'sub_offer',       normalized_text: null,  requires_review: false, body: 'Hi Noah! Can you cover Route 7B today at 3 PM? Reply YES or NO.' },
-    { phone_number: '+15551000008', volunteer_id: '00000000-0000-0000-0000-000000000108', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'inbound',  message_type: 'decline',         normalized_text: 'NO', requires_review: false, body: 'NO' },
-    { phone_number: '+15551000009', volunteer_id: '00000000-0000-0000-0000-000000000109', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'outbound', message_type: 'sub_offer',       normalized_text: null,  requires_review: false, body: 'Hi Eli! Can you cover Route 7B today at 3 PM? Reply YES or NO.' },
-    { phone_number: '+15551000010', volunteer_id: null,                                   schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: '30000000-0000-0000-0000-000000000401', direction: 'system',   message_type: 'sub_exhausted',   normalized_text: null,  requires_review: false, body: 'All available substitutes have been contacted for Route 7B. No coverage found — coordinator action required.' },
+    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'outbound', message_type: 'reminder',        normalized_text: null,  requires_review: false, body: 'Hi Sofia! Your Route 10C shift is tomorrow. Bring printed manifests. Reply YES to confirm.', created_at: subTime({ hours: 23 }) },
+    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'inbound',  message_type: 'confirmation',    normalized_text: 'YES', requires_review: false, body: 'YES will be there!', created_at: subTime({ hours: 22, minutes: 50 }) },
+    { phone_number: '+15551000003', volunteer_id: '00000000-0000-0000-0000-000000000103', schedule_id: '20000000-0000-0000-0000-000000000303', sub_request_id: null, direction: 'system',   message_type: 'status',          normalized_text: null,  requires_review: false, body: 'Sofia Okafor confirmed for Route 10C.', created_at: subTime({ hours: 22, minutes: 49 }) },
+    // Leo — live substitute request starts from a clean thread
+    { phone_number: '+15551000002', volunteer_id: '00000000-0000-0000-0000-000000000102', schedule_id: '20000000-0000-0000-0000-000000000310', sub_request_id: null, direction: 'outbound', message_type: 'reminder_t24', normalized_text: null, requires_review: false, body: 'Tomorrow is Route 7B. Pick up meal boxes at dock 2 and call dispatch if the elevator is out.', created_at: subTime({ hours: 23, minutes: 30 }) },
     // Diana — needs review
-    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'outbound', message_type: 'reminder',        normalized_text: null,  requires_review: false, body: 'Hi Diana! Your Route 12D shift starts in 3 hrs at Westside Kitchen. Reply YES to confirm or NO to cancel.' },
-    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'inbound',  message_type: 'general',         normalized_text: null,  requires_review: true,  body: 'I am not sure where exactly to park, the volunteer lot is closed today according to the sign' },
-    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'system',   message_type: 'flagged',         normalized_text: null,  requires_review: false, body: 'Flagged for human review — Diana sent a message the system could not interpret as a confirmation or cancellation.' },
+    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'outbound', message_type: 'reminder',        normalized_text: null,  requires_review: false, body: 'Hi Diana! Your Route 12D shift starts in 3 hrs at Westside Kitchen. Reply YES to confirm or NO to cancel.', created_at: subTime({ hours: 3 }) },
+    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'inbound',  message_type: 'general',         normalized_text: null,  requires_review: true,  body: 'I am not sure where exactly to park, the volunteer lot is closed today according to the sign', created_at: subTime({ hours: 2, minutes: 58 }) },
+    { phone_number: '+15551000005', volunteer_id: '00000000-0000-0000-0000-000000000105', schedule_id: '20000000-0000-0000-0000-000000000311', sub_request_id: null, direction: 'system',   message_type: 'flagged',         normalized_text: null,  requires_review: false, body: 'Flagged for human review — Diana sent a message the system could not interpret as a confirmation or cancellation.', created_at: subTime({ hours: 2, minutes: 57 }) },
     // Marcus — danger zone
-    { phone_number: '+15551000006', volunteer_id: '00000000-0000-0000-0000-000000000106', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: null,                                          direction: 'inbound',  message_type: 'cancellation',    normalized_text: 'NO', requires_review: false, body: 'I am so sorry I cannot make it today, family emergency' },
-    { phone_number: '+15551000006', volunteer_id: '00000000-0000-0000-0000-000000000106', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: null,                                          direction: 'outbound', message_type: 'acknowledgement', normalized_text: null,  requires_review: false, body: 'We understand Marcus. We will try to find someone to cover Route 9F immediately.' },
-    { phone_number: '+15551000007', volunteer_id: '00000000-0000-0000-0000-000000000107', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: '30000000-0000-0000-0000-000000000403', direction: 'outbound', message_type: 'sub_offer',       normalized_text: null,  requires_review: false, body: 'URGENT: Ava, can you cover Route 9F (Midtown Drop) starting in 90 min? Reply YES or NO.' },
-    { phone_number: '+15551000010', volunteer_id: null,                                   schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: '30000000-0000-0000-0000-000000000403', direction: 'system',   message_type: 'danger_zone',     normalized_text: null,  requires_review: false, body: 'Danger zone alert: Route 9F starts in under 2 hours with no confirmed volunteer. Coordinator should call directly.' },
+    { phone_number: '+15551000006', volunteer_id: '00000000-0000-0000-0000-000000000106', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: null,                                          direction: 'inbound',  message_type: 'cancellation',    normalized_text: 'NO', requires_review: false, body: 'I am so sorry I cannot make it today, family emergency', created_at: subTime({ minutes: 50 }) },
+    { phone_number: '+15551000006', volunteer_id: '00000000-0000-0000-0000-000000000106', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: null,                                          direction: 'outbound', message_type: 'acknowledgement', normalized_text: null,  requires_review: false, body: 'We understand Marcus. We will try to find someone to cover Route 9F immediately.', created_at: subTime({ minutes: 49 }) },
+    { phone_number: '+15551000007', volunteer_id: '00000000-0000-0000-0000-000000000107', schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: '30000000-0000-0000-0000-000000000403', direction: 'outbound', message_type: 'sub_offer',       normalized_text: null,  requires_review: false, body: 'URGENT: Ava, can you cover Route 9F (Midtown Drop) starting in 90 min? Reply YES or NO.', created_at: subTime({ minutes: 48 }) },
+    { phone_number: '+15551000010', volunteer_id: null,                                   schedule_id: '20000000-0000-0000-0000-000000000312', sub_request_id: '30000000-0000-0000-0000-000000000403', direction: 'system',   message_type: 'danger_zone',     normalized_text: null,  requires_review: false, body: 'Danger zone alert: Route 9F starts in under 2 hours with no confirmed volunteer. Coordinator should call directly.', created_at: subTime({ minutes: 47 }) },
   ]);
   if (mErr) { console.error('  Message events error:', mErr.message); process.exit(1); }
-  console.log('  20 message events inserted.\n');
+  console.log('  15 message events inserted.\n');
 
   console.log('✓ Seed complete!');
 }

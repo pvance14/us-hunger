@@ -101,7 +101,7 @@ VALUES
   ('20000000-0000-0000-0000-000000000310',
     '10000000-0000-0000-0000-000000000202',
     '00000000-0000-0000-0000-000000000102',
-    (NOW() + INTERVAL '5 hours')::date,  NOW() + INTERVAL '5 hours',  'sub_requested'),
+    (NOW() + INTERVAL '5 hours')::date,  NOW() + INTERVAL '5 hours',  'confirmed'),
 
   -- ⚠️ Needs review (Diana sent a free-text message the bot couldn't parse)
   ('20000000-0000-0000-0000-000000000311',
@@ -120,12 +120,6 @@ VALUES
 
 INSERT INTO public.sub_requests (id, schedule_id, requesting_volunteer_id, status)
 VALUES
-  -- Failed: all available subs declined for Leo's Route 7B
-  ('30000000-0000-0000-0000-000000000401',
-    '20000000-0000-0000-0000-000000000310',
-    '00000000-0000-0000-0000-000000000102',
-    'failed'),
-
   -- Escalated: Diana's shift needs human follow-up
   ('30000000-0000-0000-0000-000000000402',
     '20000000-0000-0000-0000-000000000311',
@@ -143,14 +137,6 @@ VALUES
 
 INSERT INTO public.sub_request_attempts (sub_request_id, candidate_volunteer_id, attempt_order, status, contacted_at, responded_at)
 VALUES
-  -- For the failed request (Leo's Route 7B): Ava declined, Noah declined
-  ('30000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-000000000107', 1, 'declined',
-    NOW() - INTERVAL '2 hours', NOW() - INTERVAL '100 minutes'),
-  ('30000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-000000000108', 2, 'declined',
-    NOW() - INTERVAL '90 minutes', NOW() - INTERVAL '75 minutes'),
-  ('30000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-000000000109', 3, 'expired',
-    NOW() - INTERVAL '70 minutes', NULL),
-
   -- For the searching request (Marcus's danger zone): Ava contacted, waiting
   ('30000000-0000-0000-0000-000000000403', '00000000-0000-0000-0000-000000000107', 1, 'sent',
     NOW() - INTERVAL '10 minutes', NULL);
@@ -159,77 +145,78 @@ VALUES
 -- ─── Message Events ───────────────────────────────────────────────────────────
 -- Realistic conversation history across multiple volunteers
 
-INSERT INTO public.message_events (phone_number, volunteer_id, schedule_id, sub_request_id, direction, message_type, normalized_text, requires_review, body)
+INSERT INTO public.message_events (phone_number, volunteer_id, schedule_id, sub_request_id, direction, message_type, normalized_text, requires_review, body, created_at)
 VALUES
-  -- Maya (Route 4A, confirmed) ─────────────────────────────────────────────
-  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000301', NULL,
-    'outbound', 'reminder', NULL, FALSE,
-    'Hi Maya! Reminder: your Route 4A shift starts in 24 hrs. Reply YES to confirm or NO to cancel.'),
-  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000301', NULL,
+  -- Maya (Route 4A, drip reminders + confirmed) ───────────────────────────
+  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000307', NULL,
+    'outbound', 'reminder_t72', NULL, FALSE,
+    'Checking in on Route 4A this week. Reply YES to confirm or SUB if you need a replacement.',
+    NOW() - INTERVAL '72 hours'),
+  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000307', NULL,
     'inbound', 'confirmation', 'YES', FALSE,
-    'YES'),
-  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000301', NULL,
+    'YES',
+    NOW() - INTERVAL '71 hours 55 minutes'),
+  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000307', NULL,
     'system', 'status', NULL, FALSE,
-    'Maya Rodriguez confirmed for Route 4A. Shift is set.'),
+    'Maya Rodriguez confirmed for Route 4A. Shift is set.',
+    NOW() - INTERVAL '71 hours 54 minutes'),
+  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000301', NULL,
+    'outbound', 'reminder_t24', NULL, FALSE,
+    'Tomorrow is Route 4A. Bring blue insulated bags and check the volunteer map before departure.',
+    NOW() - INTERVAL '24 hours'),
+  ('+15551000001', '00000000-0000-0000-0000-000000000101', '20000000-0000-0000-0000-000000000301', NULL,
+    'outbound', 'reminder_t2', NULL, FALSE,
+    'Route 4A starts soon. Thanks for serving today. Reply HELP if you need a coordinator.',
+    NOW() - INTERVAL '2 hours'),
 
   -- Sofia (Route 10C, confirmed) ────────────────────────────────────────────
   ('+15551000003', '00000000-0000-0000-0000-000000000103', '20000000-0000-0000-0000-000000000303', NULL,
     'outbound', 'reminder', NULL, FALSE,
-    'Hi Sofia! Your Route 10C shift is tomorrow. Bring printed manifests. Reply YES to confirm.'),
+    'Hi Sofia! Your Route 10C shift is tomorrow. Bring printed manifests. Reply YES to confirm.',
+    NOW() - INTERVAL '23 hours'),
   ('+15551000003', '00000000-0000-0000-0000-000000000103', '20000000-0000-0000-0000-000000000303', NULL,
     'inbound', 'confirmation', 'YES', FALSE,
-    'YES will be there!'),
+    'YES will be there!',
+    NOW() - INTERVAL '22 hours 50 minutes'),
   ('+15551000003', '00000000-0000-0000-0000-000000000103', '20000000-0000-0000-0000-000000000303', NULL,
     'system', 'status', NULL, FALSE,
-    'Sofia Okafor confirmed for Route 10C.'),
+    'Sofia Okafor confirmed for Route 10C.',
+    NOW() - INTERVAL '22 hours 49 minutes'),
 
-  -- Leo (Route 7B → sub requested, failed) ─────────────────────────────────
+  -- Leo (Route 7B → ready for a live SUB request) ─────────────────────────
   ('+15551000002', '00000000-0000-0000-0000-000000000102', '20000000-0000-0000-0000-000000000310', NULL,
-    'inbound', 'cancellation', 'SUB', FALSE,
-    'SUB'),
-  ('+15551000002', '00000000-0000-0000-0000-000000000102', '20000000-0000-0000-0000-000000000310', NULL,
-    'outbound', 'acknowledgement', NULL, FALSE,
-    'Got it Leo. We will find a substitute for your Route 7B shift and let you know.'),
-  ('+15551000007', '00000000-0000-0000-0000-000000000107', '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'outbound', 'sub_offer', NULL, FALSE,
-    'Hi Ava! Can you cover Route 7B (Senior Center Annex) today at 3 PM? Reply YES or NO.'),
-  ('+15551000007', '00000000-0000-0000-0000-000000000107', '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'inbound', 'decline', 'NO', FALSE,
-    'NO sorry I have a conflict'),
-  ('+15551000008', '00000000-0000-0000-0000-000000000108', '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'outbound', 'sub_offer', NULL, FALSE,
-    'Hi Noah! Can you cover Route 7B today at 3 PM? Reply YES or NO.'),
-  ('+15551000008', '00000000-0000-0000-0000-000000000108', '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'inbound', 'decline', 'NO', FALSE,
-    'NO'),
-  ('+15551000009', '00000000-0000-0000-0000-000000000109', '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'outbound', 'sub_offer', NULL, FALSE,
-    'Hi Eli! Can you cover Route 7B today at 3 PM? Reply YES or NO.'),
-  ('+15551000010', NULL, '20000000-0000-0000-0000-000000000310', '30000000-0000-0000-0000-000000000401',
-    'system', 'sub_exhausted', NULL, FALSE,
-    'All available substitutes have been contacted for Route 7B. No coverage found — coordinator action required.'),
+    'outbound', 'reminder_t24', NULL, FALSE,
+    'Tomorrow is Route 7B. Pick up meal boxes at dock 2 and call dispatch if the elevator is out.',
+    NOW() - INTERVAL '24 hours'),
 
   -- Diana (Route 12D → needs review) ───────────────────────────────────────
   ('+15551000005', '00000000-0000-0000-0000-000000000105', '20000000-0000-0000-0000-000000000311', NULL,
     'outbound', 'reminder', NULL, FALSE,
-    'Hi Diana! Your Route 12D shift starts in 3 hrs at Westside Kitchen. Reply YES to confirm or NO to cancel.'),
+    'Hi Diana! Your Route 12D shift starts in 3 hrs at Westside Kitchen. Reply YES to confirm or NO to cancel.',
+    NOW() - INTERVAL '3 hours'),
   ('+15551000005', '00000000-0000-0000-0000-000000000105', '20000000-0000-0000-0000-000000000311', NULL,
     'inbound', 'general', NULL, TRUE,
-    'I am not sure where exactly to park, the volunteer lot is closed today according to the sign'),
+    'I am not sure where exactly to park, the volunteer lot is closed today according to the sign',
+    NOW() - INTERVAL '2 hours 58 minutes'),
   ('+15551000005', '00000000-0000-0000-0000-000000000105', '20000000-0000-0000-0000-000000000311', NULL,
     'system', 'flagged', NULL, FALSE,
-    'Flagged for human review — Diana sent a message the system could not interpret as a confirmation or cancellation.'),
+    'Flagged for human review — Diana sent a message the system could not interpret as a confirmation or cancellation.',
+    NOW() - INTERVAL '2 hours 57 minutes'),
 
   -- Marcus (Route 9F → danger zone) ────────────────────────────────────────
   ('+15551000006', '00000000-0000-0000-0000-000000000106', '20000000-0000-0000-0000-000000000312', NULL,
     'inbound', 'cancellation', 'NO', FALSE,
-    'I am so sorry I cannot make it today, family emergency'),
+    'I am so sorry I cannot make it today, family emergency',
+    NOW() - INTERVAL '50 minutes'),
   ('+15551000006', '00000000-0000-0000-0000-000000000106', '20000000-0000-0000-0000-000000000312', NULL,
     'outbound', 'acknowledgement', NULL, FALSE,
-    'We understand Marcus. We will try to find someone to cover Route 9F immediately.'),
+    'We understand Marcus. We will try to find someone to cover Route 9F immediately.',
+    NOW() - INTERVAL '49 minutes'),
   ('+15551000007', '00000000-0000-0000-0000-000000000107', '20000000-0000-0000-0000-000000000312', '30000000-0000-0000-0000-000000000403',
     'outbound', 'sub_offer', NULL, FALSE,
-    'URGENT: Ava, can you cover Route 9F (Midtown Drop) starting in 90 min? Reply YES or NO.'),
+    'URGENT: Ava, can you cover Route 9F (Midtown Drop) starting in 90 min? Reply YES or NO.',
+    NOW() - INTERVAL '48 minutes'),
   ('+15551000010', NULL, '20000000-0000-0000-0000-000000000312', '30000000-0000-0000-0000-000000000403',
     'system', 'danger_zone', NULL, FALSE,
-    'Danger zone alert: Route 9F starts in under 2 hours with no confirmed volunteer. Coordinator should call directly.');
+    'Danger zone alert: Route 9F starts in under 2 hours with no confirmed volunteer. Coordinator should call directly.',
+    NOW() - INTERVAL '47 minutes');

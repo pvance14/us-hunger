@@ -18,6 +18,12 @@ type ScheduleWithShift = ScheduleRecord & {
   volunteer: VolunteerRecord | null;
 };
 
+type AttemptWithContext = SubRequestAttemptRecord & {
+  sub_request: (SubRequestRecord & {
+    schedule: ScheduleWithShift | null;
+  }) | null;
+};
+
 function normalizeInboundText(text: string | null | undefined): string {
   return text?.trim().toUpperCase() ?? '';
 }
@@ -48,6 +54,22 @@ async function getScheduleById(scheduleId: string): Promise<ScheduleWithShift | 
   }
 
   return (data as ScheduleWithShift | null) ?? null;
+}
+
+async function getLatestAttemptForVolunteer(volunteerId: string): Promise<AttemptWithContext | null> {
+  const { data, error } = await supabaseAdmin
+    .from('sub_request_attempts')
+    .select('*, sub_request:sub_requests(*, schedule:schedules(*, shift:shifts(*), volunteer:volunteers(*)))')
+    .eq('candidate_volunteer_id', volunteerId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as AttemptWithContext | null) ?? null;
 }
 
 async function resolveSubstituteAcceptance(
@@ -238,6 +260,35 @@ export async function POST(request: Request) {
         }
 
         if (!schedule) {
+          const latestAttempt = await getLatestAttemptForVolunteer(volunteer.id);
+
+          if (latestAttempt?.sub_request?.schedule) {
+            const offerShiftName = latestAttempt.sub_request.schedule.shift?.name ?? 'that open shift';
+            const offerStillActive =
+              latestAttempt.status === 'sent' && latestAttempt.sub_request.status === 'searching';
+
+            if (!offerStillActive) {
+              await recordMessageEvent({
+                phoneNumber: volunteer.phone_number,
+                volunteerId: volunteer.id,
+                scheduleId: latestAttempt.sub_request.schedule.id,
+                subRequestId: latestAttempt.sub_request.id,
+                subRequestAttemptId: latestAttempt.id,
+                direction: 'outbound',
+                body: `That ${offerShiftName} coverage offer is no longer active, so we couldn't confirm you for it. Reply HELP and a coordinator can check the next steps.`,
+                messageType: 'offer_closed',
+              });
+
+              return NextResponse.json({
+                success: true,
+                parsed: normalizedText,
+                action: 'stale_substitute_offer',
+                scheduleId: latestAttempt.sub_request.schedule.id,
+                shiftName: offerShiftName,
+              });
+            }
+          }
+
           await recordMessageEvent({
             phoneNumber: volunteer.phone_number,
             volunteerId: volunteer.id,

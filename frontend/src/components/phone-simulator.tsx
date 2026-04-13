@@ -183,9 +183,10 @@ export function PhoneSimulator() {
           <div className="rounded-lg bg-white p-6" style={{ boxShadow: C.cardShadow }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: C.gray500 }}>Quick Demo Paths</p>
             <div className="space-y-3 text-sm" style={{ color: C.gray600 }}>
-              <p><strong style={{ color: C.gray900 }}>Maya Driver</strong> — send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>SUB</code> to start the standard substitute workflow.</p>
-              <p><strong style={{ color: C.gray900 }}>Ava Sub</strong> — wait for the offer, then send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>YES</code> to accept.</p>
-              <p><strong style={{ color: C.gray900 }}>Leo Driver</strong> — send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>SUB</code> to trigger a danger-zone alert.</p>
+              <p><strong style={{ color: C.gray900 }}>Maya Driver</strong> — starts with a seeded T-72, T-24, and T-2 reminder history so you can show the drip sequence in order.</p>
+              <p><strong style={{ color: C.gray900 }}>Leo Driver</strong> — send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>SUB</code> to start a live substitute search.</p>
+              <p><strong style={{ color: C.gray900 }}>Ava Sub</strong> — she is the first ranked substitute, so Leo&apos;s live request will ping her first. Switch here and send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>YES</code> to accept.</p>
+              <p><strong style={{ color: C.gray900 }}>Marcus Driver</strong> — send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>SUB</code> to trigger the danger-zone alert.</p>
               <p><strong style={{ color: C.gray900 }}>Any volunteer</strong> — send <code className="rounded px-1 text-xs" style={{ backgroundColor: C.gray100 }}>HELP</code> or full text for human-in-the-loop alert.</p>
             </div>
           </div>
