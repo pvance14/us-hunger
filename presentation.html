@@ -439,7 +439,7 @@
   <!-- SLIDE 1: INTRO                             -->
   <!-- ══════════════════════════════════════════ -->
   <div class="slide active" id="slide-1">
-    <div class="eyebrow">IS 601 · Capstone · April 13, 2026</div>
+    <div class="eyebrow">IS 590R · AI Strategy · April 13, 2026</div>
     <h1>The Volunteer<br>Coordination Agent</h1>
     <div class="divider"></div>
     <p class="subtitle">Automating the logistics of kindness — so CBOs can focus on their mission, not their spreadsheets.</p>
@@ -447,6 +447,7 @@
       <div class="team-chip">Ava Williams</div>
       <div class="team-chip">Hailey Aguiar</div>
       <div class="team-chip">Preston Vance</div>
+      <div class="team-chip">Caden Vance</div>
     </div>
   </div>
 
@@ -454,190 +455,109 @@
   <!-- SLIDE 2: SCOPING THE PROBLEM               -->
   <!-- ══════════════════════════════════════════ -->
   <div class="slide" id="slide-2">
-    <div class="eyebrow">Discovery Phase</div>
-    <h2>How We Found the Problem</h2>
-    <p class="subtitle">We didn't start with a solution. We started with conversations — four discovery interviews across Utah nonprofits.</p>
+    <div class="eyebrow">Discovery &amp; Decision Process</div>
+    <h2>From Research to a Decision</h2>
+    <p class="subtitle">5 interviews · 4 CBOs · Mar 5–12, 2026 · Two opportunities surfaced. One clear winner.</p>
 
-    <div class="org-pill-row">
-      <div class="org-pill">🏢 Elevate Utah</div>
-      <div class="org-pill">🍽️ Meals on Wheels</div>
-      <div class="org-pill">💙 United Angels</div>
-      <div class="org-pill">🥫 Tabitha's Way</div>
-    </div>
+    <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: start; margin-top: 32px; width: 100%; max-width: 1000px;">
 
-    <div class="insight-box">
-      <div class="label">The Pattern We Saw</div>
-      <p>Across every interview, a common thread emerged: <strong>volunteer coordination was manual, fragmented, and exhausting</strong>. Staff were spending their limited bandwidth on logistics — not community impact. We built for that gap.</p>
-    </div>
+      <!-- Step 1: Discovery -->
+      <div style="background: var(--slate); border: 1px solid var(--slate-light); border-radius: 14px; padding: 22px 24px; text-align: left;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-bottom:10px;">Step 1 — Discovery</div>
+        <div style="font-size:15px; font-weight:700; margin-bottom:12px;">5 Interviews, 4 CBOs</div>
+        <div style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:14px;">Every leader reported the same root problem: a <strong style="color:var(--white);">20–30% "Administrative Tax"</strong> — time consumed by repetitive coordination instead of direct service delivery.</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="background:var(--navy); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted);">🏢 Elevate Utah — 70% redundant data entry</div>
+          <div style="background:var(--navy); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted);">🍽️ Meals on Wheels — 79,225 annual volunteer hours at risk</div>
+          <div style="background:var(--navy); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted);">💙 United Angels — 2 staff managing 2,500 families</div>
+          <div style="background:var(--navy); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted);">🥫 Tabitha's Way — data loss forced fallback to 2022 paper records</div>
+        </div>
+      </div>
 
-    <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-number">10–15</div>
-        <div class="stat-label">hours/week spent on manual volunteer logistics</div>
+      <!-- Arrow -->
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top: 60px; gap: 24px;">
+        <div style="text-align:center;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--green); margin-bottom:6px;">2 Pillars</div>
+          <div style="font-size:22px; color:var(--muted);">→</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--green); margin-bottom:6px;">Priority Matrix</div>
+          <div style="font-size:22px; color:var(--muted);">→</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">~2 hrs</div>
-        <div class="stat-label">per cancellation to find a manual substitute</div>
+
+      <!-- Step 2: Decision -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background: var(--slate); border: 1px solid var(--slate-light); border-radius: 14px; padding: 20px 24px; text-align: left;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-bottom:8px;">Step 2 — Two Opportunities</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:flex-start; gap:10px;">
+              <span style="background:rgba(34,197,94,0.15); color:var(--green); font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; white-space:nowrap; margin-top:1px;">PRIMARY</span>
+              <div>
+                <div style="font-size:14px; font-weight:700;">Intelligent Volunteer Coordination</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:2px;">High impact + High pain — processes are "all manual"</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:10px;">
+              <span style="background:rgba(148,163,184,0.1); color:var(--muted); font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; white-space:nowrap; margin-top:1px;">PHASE 2</span>
+              <div>
+                <div style="font-size:14px; font-weight:700;">Automated Grant Discovery</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:2px;">Moderate impact — critical but doesn't fix service delivery</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.3); border-radius: 14px; padding: 20px 24px; text-align: left;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-bottom:8px;">The Verdict</div>
+          <div style="font-size:14px; color:var(--white); line-height:1.5;"><strong>Intelligent Volunteer Coordination</strong></div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">2 staff</div>
-        <div class="stat-label">managing 2,500+ families & 100s of volunteers</div>
-      </div>
+
     </div>
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 3: INTERVIEW — MEALS ON WHEELS       -->
+  <!-- SLIDE 3: WHY VOLUNTEER COORDINATION        -->
   <!-- ══════════════════════════════════════════ -->
   <div class="slide" id="slide-3">
-    <div class="eyebrow">Interview 1 of 4 · Ava Williams · March 9, 2026</div>
-    <div class="interview-header">
-      <div class="org-badge">Meals on Wheels</div>
-      <div class="interviewee-info">
-        <div class="name">Jacob Palmer</div>
-        <div class="meta">Lead Program Director, Y-serve Chapter at BYU</div>
+    <div class="eyebrow">The Verdict</div>
+    <h2>Why Volunteer Coordination?</h2>
+    <p class="subtitle">The data pointed one direction. Every interview confirmed it.</p>
+
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-top:32px; width:100%; max-width:1000px;">
+      <div class="pain-card green">
+        <span class="icon">📈</span>
+        <h4>Scalability Crisis</h4>
+        <p>United Angels runs 15+ events per year requiring 100+ volunteers each — all coordinated through manual email threads. One automated scheduling portal replaces weeks of back-and-forth.</p>
+      </div>
+      <div class="pain-card green">
+        <span class="icon">🛡️</span>
+        <h4>Operational Resilience</h4>
+        <p>Tabitha's Way lost years of digital donor data when a Google Form ownership changed — forcing staff to re-enter records from 2022 paper printouts. A centralized cloud system eliminates that risk entirely.</p>
+      </div>
+      <div class="pain-card green">
+        <span class="icon">⚠️</span>
+        <h4>Real Stakes</h4>
+        <p>At Meals on Wheels, an unfilled route isn't a missed meeting — it's a senior who doesn't receive a welfare check. Automation ensures every shift is flagged and filled in real time.</p>
       </div>
     </div>
 
-    <div class="quote-block">
-      <p>"They have a big spreadsheet with routes covered every single day — usually different people. And then if these people can't make it, there's a huge list of subs. Someone has to work through that list."</p>
-      <div class="attribution">— Jacob Palmer on the substitute-finding process</div>
-    </div>
-
-    <div class="card-grid">
-      <div class="pain-card red">
-        <span class="icon">📋</span>
-        <h4>Spreadsheet-Managed Routes</h4>
-        <p>Routes and volunteer assignments tracked manually in a shared spreadsheet. No automation, no alerting.</p>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-top:18px; width:100%; max-width:1000px;">
+      <div style="background:var(--slate); border:1px solid var(--slate-light); border-radius:12px; padding:20px 24px; text-align:left;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:10px;">Why Not Grant Discovery?</div>
+        <p style="font-size:13px; color:var(--muted); line-height:1.6;">Funding is critical, but grant writing requires high human judgment and oversight. It doesn't unblock daily service delivery. We solve logistics first, then layer in funding intelligence.</p>
       </div>
-      <div class="pain-card amber">
-        <span class="icon">📞</span>
-        <h4>Manual Sub List</h4>
-        <p>When a volunteer cancels, someone has to work through a physical sub list one by one to find a replacement.</p>
-      </div>
-      <div class="pain-card blue">
-        <span class="icon">🎓</span>
-        <h4>Student Volunteer Logistics</h4>
-        <p>Y-serve organizes ride-sharing and shift sign-ups manually — connecting BYU students to daily delivery routes.</p>
+      <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:12px; padding:20px 24px; text-align:left;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-bottom:10px;">The Quantified Case</div>
+        <p style="font-size:13px; color:var(--white); line-height:1.6;">Reclaiming <strong>15 hrs/week</strong> at a <strong>$39/hr</strong> nonprofit benchmark = <strong>$30,420/yr</strong> in recovered staff capacity — effectively a "third teammate" for two days every week.</p>
       </div>
     </div>
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 4: INTERVIEW — UNITED ANGELS         -->
+  <!-- SLIDE 4: WHAT WE BUILT                     -->
   <!-- ══════════════════════════════════════════ -->
   <div class="slide" id="slide-4">
-    <div class="eyebrow">Interview 2 of 4 · Hailey Aguiar · March 11, 2026</div>
-    <div class="interview-header">
-      <div class="org-badge">United Angels</div>
-      <div class="interviewee-info">
-        <div class="name">Sylvia Lam</div>
-        <div class="meta">Executive Director</div>
-      </div>
-    </div>
-
-    <div class="quote-block">
-      <p>"It would be nice to have a scheduling form where a volunteer enters their availability and gets automatically scheduled. And some way to confirm with volunteers the night before — if they can't do it anymore, AI plugs someone else in."</p>
-      <div class="attribution">— Sylvia Lam describing their ideal volunteer system</div>
-    </div>
-
-    <div class="card-grid">
-      <div class="pain-card red">
-        <span class="icon">📧</span>
-        <h4>Manual Weekly Emails</h4>
-        <p>Staff manually compose and send a newsletter every Monday — inserting graphics, event links, and reminders by hand.</p>
-      </div>
-      <div class="pain-card amber">
-        <span class="icon">🙋</span>
-        <h4>100+ Volunteer Events</h4>
-        <p>Events like Walk with Angels require 100+ volunteers. Coordination, confirmation, and no-show handling all done manually.</p>
-      </div>
-      <div class="pain-card blue">
-        <span class="icon">💰</span>
-        <h4>Grant Discovery Burden</h4>
-        <p>Staff spend significant time finding applicable grants and managing application timelines with no automated support.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 5: INTERVIEW — ELEVATE UTAH          -->
-  <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-5">
-    <div class="eyebrow">Interview 3 of 4 · Preston Vance · March 5, 2026</div>
-    <div class="interview-header">
-      <div class="org-badge">Elevate Utah</div>
-      <div class="interviewee-info">
-        <div class="name">Jackie Larson</div>
-        <div class="meta">CEO (formerly Central Hispano, est. 2001)</div>
-      </div>
-    </div>
-
-    <div class="quote-block">
-      <p>"Data is scattered across different sheets, making it impossible to track clients holistically. Programs — Legal, Food, Classes — are completely siloed."</p>
-      <div class="attribution">— Jackie Larson on their biggest operational challenge</div>
-    </div>
-
-    <div class="card-grid">
-      <div class="pain-card red">
-        <span class="icon">🗃️</span>
-        <h4>Fragmented Client Data</h4>
-        <p>Legal, food, and education programs each live in separate Google Sheets. No unified view of a client's full history.</p>
-      </div>
-      <div class="pain-card amber">
-        <span class="icon">📝</span>
-        <h4>CEO-Managed Grant Writing</h4>
-        <p>Jackie handles all grant writing personally with no dedicated writer — a significant time sink for top leadership.</p>
-      </div>
-      <div class="pain-card blue">
-        <span class="icon">🔗</span>
-        <h4>Repetitive Intake Forms</h4>
-        <p>Every program requires a new Google Sheet for intake. Clients re-enter information across departments with no shared profile.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 6: INTERVIEW — TABITHA'S WAY         -->
-  <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-6">
-    <div class="eyebrow">Interview 4 of 4 · Ava Williams · March 12, 2026</div>
-    <div class="interview-header">
-      <div class="org-badge">Tabitha's Way</div>
-      <div class="interviewee-info">
-        <div class="name">Lillian Kump</div>
-        <div class="meta">Community Relations Coordinator</div>
-      </div>
-    </div>
-
-    <div class="quote-block">
-      <p>"We use Google Voice to text volunteers shift reminders, but we still have to call groups for large sorting parties. We struggle with the bandwidth for volunteer management, recruiting, and retention."</p>
-      <div class="attribution">— Lillian Kump on volunteer communication overhead</div>
-    </div>
-
-    <div class="card-grid">
-      <div class="pain-card red">
-        <span class="icon">🖥️</span>
-        <h4>Tech Fragility</h4>
-        <p>Stockbox downtime forces a switch to paper. Old refurbished computers (2018) cause daily bottlenecks for staff.</p>
-      </div>
-      <div class="pain-card amber">
-        <span class="icon">📲</span>
-        <h4>Manual Volunteer Reminders</h4>
-        <p>Shift reminders sent via Google Voice one by one. Large sorting events still require individual phone calls.</p>
-      </div>
-      <div class="pain-card blue">
-        <span class="icon">📊</span>
-        <h4>Lost Donor Data</h4>
-        <p>A Google Form file ownership switch wiped digital food drive data. Staff now re-enter years of records from paper printouts.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 7: WHAT WE BUILT                     -->
-  <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-7">
     <div class="eyebrow">The Solution</div>
     <h2>What Our Application Does</h2>
     <p class="subtitle">Four AI-powered systems that eliminate the highest-friction coordination tasks.</p>
@@ -679,9 +599,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 8: PAIN POINTS WE SOLVE              -->
+  <!-- SLIDE 5: PAIN POINTS WE SOLVE              -->
   <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-8">
+  <div class="slide" id="slide-5">
     <div class="eyebrow">Impact</div>
     <h2>Pain Points → Solutions</h2>
 
@@ -689,7 +609,6 @@
       <thead>
         <tr>
           <th>Pain Point (Heard in Interviews)</th>
-          <th>Who Felt It</th>
           <th>Our Solution</th>
           <th>Outcome</th>
         </tr>
@@ -697,37 +616,31 @@
       <tbody>
         <tr>
           <td>Manual sub list worked through after cancellation</td>
-          <td>Meals on Wheels, United Angels</td>
           <td>Autonomous Sub-Filling Agent</td>
           <td><span class="badge badge-green">0 hrs manual sub-filling</span></td>
         </tr>
         <tr>
           <td>Individual shift reminder texts sent by hand</td>
-          <td>Tabitha's Way, United Angels</td>
           <td>T-Minus SMS Drip Campaign</td>
           <td><span class="badge badge-green">Fully automated</span></td>
         </tr>
         <tr>
           <td>Insurance docs tracked in folders, no alerts</td>
-          <td>Meals on Wheels, Tabitha's Way</td>
           <td>Compliance Monitoring Agent</td>
           <td><span class="badge badge-green">100% valid docs on file</span></td>
         </tr>
         <tr>
           <td>No real-time staffing visibility for coordinators</td>
-          <td>All CBOs</td>
           <td>Control Tower Dashboard</td>
           <td><span class="badge badge-green">Live status, instant alerts</span></td>
         </tr>
         <tr>
           <td>Late cancellations cause chaos (&lt;4 hrs before shift)</td>
-          <td>Meals on Wheels</td>
           <td>Danger Zone Protocol</td>
           <td><span class="badge badge-green">Immediate coordinator alert</span></td>
         </tr>
         <tr>
           <td>Volunteer confusion → no-shows and route errors</td>
-          <td>All CBOs</td>
           <td>Shift-Specific Logistics Drop</td>
           <td><span class="badge badge-green">Bag color, map link via SMS</span></td>
         </tr>
@@ -736,9 +649,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 9: LIVE DEMO                         -->
+  <!-- SLIDE 6: LIVE DEMO                         -->
   <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-9">
+  <div class="slide" id="slide-6">
     <div class="eyebrow">Demo</div>
     <h2>Let's See It in Action</h2>
     <div class="demo-box">
@@ -760,9 +673,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 10: WHERE WE GO NEXT                 -->
+  <!-- SLIDE 7: WHERE WE GO NEXT                  -->
   <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-10">
+  <div class="slide" id="slide-7">
     <div class="eyebrow">Phase 2 Roadmap</div>
     <h2>Where We Go Next</h2>
     <p class="subtitle">Phase 1 stabilizes the logistics. Phase 2 expands the intelligence.</p>
@@ -792,9 +705,9 @@
   </div>
 
   <!-- ══════════════════════════════════════════ -->
-  <!-- SLIDE 11: Q&A                              -->
+  <!-- SLIDE 8: Q&A                               -->
   <!-- ══════════════════════════════════════════ -->
-  <div class="slide" id="slide-11">
+  <div class="slide" id="slide-8">
     <div class="eyebrow">Thank You</div>
     <h1>Questions?</h1>
     <div class="divider"></div>
@@ -803,6 +716,7 @@
       <div class="team-chip">Ava Williams</div>
       <div class="team-chip">Hailey Aguiar</div>
       <div class="team-chip">Preston Vance</div>
+      <div class="team-chip">Caden Vance</div>
     </div>
     <div style="margin-top: 48px; display:flex; gap: 40px; color: var(--muted); font-size:13px; flex-wrap:wrap; justify-content:center;">
       <span>Meals on Wheels &nbsp;·&nbsp; United Angels &nbsp;·&nbsp; Elevate Utah &nbsp;·&nbsp; Tabitha's Way</span>
@@ -817,12 +731,12 @@
 <!-- Nav Controls -->
 <div id="nav">
   <button class="nav-btn" id="btn-prev" onclick="navigate(-1)" title="Previous (←)">&#8592;</button>
-  <span id="slide-counter">1 / 11</span>
+  <span id="slide-counter">1 / 8</span>
   <button class="nav-btn" id="btn-next" onclick="navigate(1)" title="Next (→)">&#8594;</button>
 </div>
 
 <script>
-  const TOTAL = 11;
+  const TOTAL = 8;
   let current = 1;
 
   function showSlide(n) {
