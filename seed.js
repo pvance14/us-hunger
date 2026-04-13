@@ -1,17 +1,91 @@
-// Run from the repo root (reads from frontend/.env.local):
-//   node -e "require('fs').readdirSync('frontend').includes('.env.local') && Object.assign(process.env, require('dotenv').parse(require('fs').readFileSync('frontend/.env.local')))" && node seed.js
+// Run from the repo root:
+//   node seed.js
+//
+// Or from the frontend dir:
+//   node ../seed.js .env.local
 //
 // Or manually:
 //   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node seed.js
 
+const fs = require('fs');
+const path = require('path');
+
 const { createClient } = require('./frontend/node_modules/@supabase/supabase-js');
+
+function parseEnv(contents) {
+  const parsed = {};
+
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex === -1) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim().replace(/^export\s+/, '');
+    let value = trimmed.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    value = value.replace(/\\n/g, '\n');
+
+    if (!(key in process.env)) {
+      parsed[key] = value;
+    }
+  }
+
+  return parsed;
+}
+
+function resolveEnvCandidates() {
+  const userPath = process.argv[2];
+  const cwd = process.cwd();
+  const repoRoot = __dirname;
+  const frontendDir = path.join(repoRoot, 'frontend');
+
+  if (userPath) {
+    return [
+      path.resolve(cwd, userPath),
+      path.resolve(frontendDir, userPath),
+    ];
+  }
+
+  return [
+    path.join(frontendDir, '.env.local'),
+    path.join(frontendDir, '.env'),
+    path.join(repoRoot, '.env.local'),
+    path.join(repoRoot, '.env'),
+  ];
+}
+
+function loadEnvFile() {
+  for (const candidate of resolveEnvCandidates()) {
+    if (!fs.existsSync(candidate)) continue;
+
+    const contents = fs.readFileSync(candidate, 'utf8');
+    Object.assign(process.env, parseEnv(contents));
+    return candidate;
+  }
+
+  return null;
+}
+
+const loadedEnvPath = loadEnvFile();
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error('Missing env vars. Run: NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node seed.js');
-  console.error('Or from the frontend dir: node -r dotenv/config ../seed.js dotenv_config_path=.env.local');
+  console.error('Or from the frontend dir: node ../seed.js .env.local');
+  if (loadedEnvPath === null) {
+    console.error('No env file was found in frontend/.env.local, frontend/.env, .env.local, or .env.');
+  }
   process.exit(1);
 }
 
